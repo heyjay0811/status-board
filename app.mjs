@@ -81,8 +81,11 @@ function 그리기() {
   if (상태.읽는중 && !상태.곳들.length) { 본문.innerHTML = '<p class="안내">GitHub에서 읽는 중…</p>'; return; }
   const 알림 = 상태.알림 ? `<p class="오류">${막기(상태.알림)}</p>` : '';
   const 글 = { 홈: 홈글, 의회: 의회글, 설계실: 설계실글, 작업: 작업글 }[상태.화면]();
-  본문.className = 상태.열린 && 상태.화면 !== '홈' ? '두칸' : '';
-  본문.innerHTML = 알림 + `<div class="목록칸">${글}</div>`;
+  // 넓은 화면은 박스를 열지 않아도 두 칸으로 세우고, 빈 박스 칸에 안내를 보인다(제12조 ③) //
+  const 두칸 = 상태.화면 !== '홈' && (!!상태.열린 || 넓은화면.matches);
+  본문.className = 두칸 ? '두칸' : '';
+  const 빈칸 = 두칸 && !상태.열린 ? '<div class="빈칸">목록에서 하나를 고르면 여기 열린다</div>' : '';
+  본문.innerHTML = 알림 + `<div class="목록칸">${글}</div>` + 빈칸;
   박스그리기();
 }
 
@@ -120,7 +123,7 @@ function 홈글() {
       ${곳.오류.length ? '<span class="딱지 판단" title="' + 막기(곳.오류.join(' / ')) + '">못 읽은 문서 있음</span>' : ''}</button>`;
   }).join('');
   return `<div class="요약"><div><b>${상태.의회 ? 찍을법안 : '–'}</b><span>찍을 법안</span></div>
-    <div><b>${찍을설계안}</b><span>찍을 설계안</span></div><div><b>${진행}</b><span>진행 중 작업</span></div></div>${줄들}`;
+    <div><b>${찍을설계안}</b><span>찍을 설계안</span></div><div><b>${진행}</b><span>진행 중 작업</span></div></div><div class="곳들">${줄들}</div>`;
 }
 
 // 목록 줄 하나 — 의회 법안과 설계안이 같이 쓴다 //
@@ -293,7 +296,7 @@ document.addEventListener('click', (e) => {
 });
 document.getElementById('다시읽기').addEventListener('click', () => { if (상태.통로) 모두읽기(); });
 window.addEventListener('hashchange', () => { 상태.화면 = 화면이름(); 상태.열린 = null; 상태.쓰는줄 = null; 그리기(); });
-넓은화면.addEventListener('change', 박스그리기);
+넓은화면.addEventListener('change', 그리기);
 function 화면이름() { const h = decodeURIComponent(location.hash.slice(1)); return ['홈', '의회', '설계실', '작업'].includes(h) ? h : '홈'; }
 
 function 시작() {

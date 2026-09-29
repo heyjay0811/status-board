@@ -1,0 +1,15 @@
+/* 상황판 모양 한 벌 — PC 앱(관리부 tools/progress.mjs)과 새 상황판(app.css)이 이 파일 하나를 읽는다(관리부 설계 `bp-상황판` 제12조 ①②). */
+/* 기준은 PC 앱 진행 현황 화면이다. 색을 고칠 때는 이 파일만 고친다 — 두 곳에 두면 한쪽만 고쳐져 두 화면이 다시 갈라진다. */
+/* 이름표: 바탕 · 글 · 흐린(흐린 글) · 선 · 칸(카드·단추 바탕) · 머리(머리 줄·고르는 줄 바탕) · 강조(개발 색 파랑) · 글꼴 */
+:root {
+  --바탕: #ffffff; --글: #1a1a1a; --흐린: #6b7280; --선: #e5e7eb; --칸: #fafafa; --머리: #f4f6f8; --강조: #2563eb;
+  --글꼴: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --바탕: #151515; --글: #e8e8e8; --흐린: #9aa0a6; --선: #2a2a2a; --칸: #1e1e1e; --머리: #16191c; --강조: #5b9dff;
+  }
+}
+:root[data-theme="dark"] {
+  --바탕: #151515; --글: #e8e8e8; --흐린: #9aa0a6; --선: #2a2a2a; --칸: #1e1e1e; --머리: #16191c; --강조: #5b9dff;
+}
