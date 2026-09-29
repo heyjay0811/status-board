@@ -10,7 +10,7 @@
 // ★PC 앱과 모바일 앱이 이 한 벌을 쓴다 — 브라우저와 Node에 다 있는 fetch·TextEncoder·btoa만 쓴다. //
 // ★열쇠는 부르는 쪽이 넘긴다 — 이 부품은 열쇠를 어디에도 적지 않는다(제10조 ②: 열쇠는 그 기기 안에만). //
 
-const API = 'https://api.github.com';
+const 진짜API = 'https://api.github.com';
 
 // 경로 조각마다 따로 감싼다 — 한글 파일 이름(설계실.md)도, 폴더 구분 「/」도 그대로 살아야 한다. //
 const 경로감싸기 = (경로) => String(경로).split('/').map(encodeURIComponent).join('/');
@@ -31,7 +31,8 @@ function b64를글(b64) {
 }
 
 // 통로 하나를 만든다. 열쇠가 없으면 공개 저장소만 읽힌다. //
-export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', fetch: 부르기 = globalThis.fetch, 기록 = console } = {}) {
+// API는 시험 때만 바꾼다 — 시험 서버(`dev-server.mjs`)가 GitHub과 같은 모양으로 임시 사본을 읽고 쓴다. //
+export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진짜API, fetch: 부르기 = globalThis.fetch?.bind(globalThis), 기록 = console } = {}) {
   if (typeof 부르기 !== 'function') throw new Error('fetch가 없는 곳이다 — 이 통로를 쓸 수 없다');
 
   async function 요청(방법, 주소, 몸) {
