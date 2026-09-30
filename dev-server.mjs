@@ -80,7 +80,8 @@ const 서버 = createServer((요청, 응답) => {
             const 새글 = Buffer.from(값.content, 'base64');
             writeFileSync(파일, 새글);
             console.log(`[시험 서버] 커밋 — ${m[1]}/${m[2]}: ${값.message}`);
-            답(200, { commit: { sha: 지문(새글) } });
+            // 진짜 GitHub처럼 새 파일 지문과 커밋 시각을 돌려준다 — 화면이 이 값으로 다시 읽지 않고 그린다 //
+            답(200, { content: { sha: 지문(새글) }, commit: { sha: 지문(새글), committer: { date: new Date().toISOString() } } });
           } catch (e) { console.error(`[시험 서버] ERROR 쓰기 실패: ${e.message}`); 답(500, { message: e.message }); }
         });
         return;

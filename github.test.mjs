@@ -30,7 +30,8 @@ function 가짜GitHub(저장소들, { 끼어들기 } = {}) {
         if (끼어들기 && 끼어들기.남은 > 0) { 끼어들기.남은--; 저장소[경로] = { 글: 끼어들기.바꾸기(저장소[경로].글), sha: 'x' + (++번호) }; }
         if (저장소[경로].sha !== 몸.sha) return 응답(409, { message: 'sha does not match' });
         저장소[경로] = { 글: 글로(몸.content), sha: 's' + (++번호) };
-        return 응답(200, { commit: { sha: 'c0ffee' + 번호 + '0000000' } });
+        // 진짜 GitHub처럼 새 파일 지문(content.sha)과 커밋 시각을 돌려준다 //
+        return 응답(200, { content: { sha: 저장소[경로].sha }, commit: { sha: 'c0ffee' + 번호 + '0000000', committer: { date: '2026-09-30T01:02:03Z' } } });
       }
     }
     return 응답(500, { message: '가짜가 모르는 요청' });
@@ -65,9 +66,27 @@ console.log('[github 시험] START');
   확인('그사이 다른 곳에서 바뀌어도 찍은 답이 적힌다', 끝글.includes('> 📌 🆕 **신설** | 2026-09-29'));
   확인('그사이 바뀐 글이 사라지지 않는다', 끝글.includes('다른 기기가 올린 법안'));
   확인('커밋 하나를 돌려준다', r.바뀜 && r.커밋.startsWith('c0ffee'));
+  // ★적은 뒤 파일을 다시 읽지 않아도 되게, 커밋 응답에서 적은 글·새 지문·커밋 시각을 돌려준다(찍기가 GitHub을 두 번만 오간다) //
+  확인('적은 글을 돌려준다(다시 읽은 글과 같다)', r.글 === 끝글, r.글 === undefined ? '글 없음' : '글 다름');
+  확인('새 파일 지문과 커밋 시각을 돌려준다', r.sha === 저장소들.management['docs/assembly.md'].sha && r.시각 === '2026-09-30T01:02:03Z', `sha ${r.sha} · 시각 ${r.시각}`);
   확인('두 번째 시도에서 다시 읽었다(GET이 두 번)', g.기록.filter((x) => x.startsWith('GET')).length === 2, g.기록.join(' / '));
   const 같음 = await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 글, '바뀐 것 없음');
   확인('바뀐 것이 없으면 커밋하지 않는다', 같음.바뀜 === false && 같음.커밋 === null);
+}
+{ // 저장소 파일 목록은 한꺼번에 받는다 — 한 곳씩 차례로 받으면 17곳에 5.7초, 한꺼번에 0.6초(2026-09-30 실제 GitHub) //
+  const 저장소들 = {}; for (let i = 0; i < 5; i++) 저장소들['곳' + i] = { '.claude/x': { 글: '', sha: 'a' } };
+  const g = 가짜GitHub(저장소들);
+  let 날아가는중 = 0, 가장많이 = 0;
+  const 느린fetch = async (주소, 옵션) => {
+    if (!주소.includes('/git/trees/')) return g.fetch(주소, 옵션);
+    날아가는중++; 가장많이 = Math.max(가장많이, 날아가는중);
+    await new Promise((r) => setTimeout(r, 20)); 날아가는중--;
+    return g.fetch(주소, 옵션);
+  };
+  const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: 느린fetch, 기록: 조용히 });
+  const 부서 = await 통로.부서저장소들();
+  확인('파일 목록 다섯 곳을 동시에 받는다', 가장많이 === 5, `동시에 가장 많이 ${가장많이}곳`);
+  확인('한꺼번에 받아도 저장소 차례는 목록 차례 그대로다', 부서.map((x) => x.이름).join() === '곳0,곳1,곳2,곳3,곳4', 부서.map((x) => x.이름).join());
 }
 { // 열쇠 없이는 비공개 저장소가 안 읽힌다 — 없음(null)이 아니라 실패로 알려야 한다 //
   const g = 가짜GitHub({ management: {} }); const 통로 = 통로만들기({ fetch: g.fetch, 기록: 조용히 });

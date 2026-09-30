@@ -68,16 +68,16 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
   }
 
   // 부서·프로젝트 저장소 — 열쇠 주인의 저장소 가운데 `.claude` 폴더가 있는 것(제1조 ⑤). //
-  // 한계: 저장소 100개까지 한 번에 받고 저장소마다 파일 목록을 한 번씩 부른다 · 바꿀 때: 저장소가 100개를 넘거나 //
-  //   여는 데 몇 초 넘게 걸리면 한 쪽씩 받아 이어 붙이고, 목록을 기기 안에 잠깐 담아 둔다. //
+  // ★저장소마다의 파일 목록은 한꺼번에 받는다([작업 395]) — 한 곳씩 차례로 받으면 17곳에 5.7초, 한꺼번에 0.6초였다 //
+  //   (2026-09-30 실제 GitHub). 한 곳이라도 못 받으면 Promise.all이 던져 「못 읽었다」로 알린다(제7조 ②). //
+  // 한계: 저장소 100개까지 한 번에 받고, 파일 목록 요청도 한 번에 그만큼 보낸다 · 바꿀 때: 저장소가 100개를 넘으면 //
+  //   한 쪽씩 받아 이어 붙이고, 한꺼번에 보내는 요청을 몇십 개씩 끊어 보낸다. //
   async function 부서저장소들() {
     const r = await 요청('GET', '/user/repos?per_page=100&affiliation=owner');
     if (r.상태 !== 200 || !Array.isArray(r.값)) throw 실패('저장소 목록을 못 읽었다(열쇠가 맞는지 확인한다)', r);
+    const 목록들 = await Promise.all(r.값.map((저장소) => 파일목록(저장소.name)));
     const 결과 = [];
-    for (const 저장소 of r.값) {
-      const 목록 = await 파일목록(저장소.name);
-      if (목록.some((p) => p.startsWith('.claude/'))) 결과.push({ 이름: 저장소.name, 목록 });
-    }
+    r.값.forEach((저장소, i) => { if (목록들[i].some((p) => p.startsWith('.claude/'))) 결과.push({ 이름: 저장소.name, 목록: 목록들[i] }); });
     기록.log(`[GitHub 통로] SUCCESS 부서저장소들 — ${r.값.length}곳 가운데 ${결과.length}곳`);
     return 결과;
   }
@@ -103,7 +103,8 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
         { message: 메시지, content: 글을b64(새글), sha: 지금.sha });
       if (r.상태 === 200 || r.상태 === 201) {
         기록.log(`[GitHub 통로] SUCCESS 커밋 ${r.값.commit.sha.slice(0, 7)} — ${저장소}/${경로}`);
-        return { 커밋: r.값.commit.sha, 바뀜: true };
+        // 커밋 응답에 적은 글의 새 지문과 커밋 시각이 들어 있다 — 부른 쪽이 파일을 다시 읽지 않아도 된다 //
+        return { 커밋: r.값.commit.sha, 바뀜: true, 글: 새글, sha: r.값.content && r.값.content.sha, 시각: r.값.commit.committer && r.값.commit.committer.date };
       }
       if (r.상태 === 409 || r.상태 === 422) { 기록.log(`[GitHub 통로] 그사이 파일이 바뀌었다(${r.상태}) — 다시 읽어 다시 적는다(${번}번째)`); continue; }
       throw 실패(`커밋하지 못했다: ${저장소}/${경로}`, r);
