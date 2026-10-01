@@ -283,7 +283,7 @@ export function 마크다운그리기(글) {
       var 항목 = [];
       while (i < 줄.length && /^\s*(\d+\.|[-*])\s+/.test(줄[i])) {
         var mm = /^(\s*)(\d+\.|[-*])\s+(.*)$/.exec(줄[i]);
-        항목.push('<div class="마목' + (mm[1].length >= 2 ? ' 마목안' : '') + '"><span class="마표지">' + (/\d/.test(mm[2]) ? 막기(mm[2]) : '•') + '</span>' + 꾸미기(mm[3]) + '</div>');
+        항목.push('<div class="마목' + (mm[1].length >= 2 ? ' 마목안' : '') + '"><span class="마표지">' + (/\d/.test(mm[2]) ? 막기(mm[2]) : '•') + '</span><span class="마글">' + 꾸미기(mm[3]) + '</span></div>');
         i++;
       }
       밖.push(항목.join('')); continue;

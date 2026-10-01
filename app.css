@@ -90,6 +90,7 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .마목 { display: flex; gap: 6px; margin: 2px 0; }
 .마목안 { margin-left: 18px; }
 .마표지 { flex: none; min-width: 1.4em; color: var(--흐린); }
+.마글 { flex: 1; min-width: 0; }
 .마표 { border-collapse: collapse; margin: 6px 0; font-size: 13px; }
 .마표 th, .마표 td { border: 1px solid var(--선); padding: 3px 6px; vertical-align: top; text-align: left; }
 .마인용 { border-left: 3px solid var(--선); padding-left: 8px; margin: 4px 0; color: var(--흐린); }
