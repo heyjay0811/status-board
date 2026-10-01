@@ -54,7 +54,13 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .딱지 { display: inline-block; font-size: 11px; line-height: 1.6; padding: 0 6px; border-radius: 10px; border: 1px solid var(--선); color: var(--흐린); white-space: nowrap; }
 .딱지.답 { border-color: var(--강조); color: var(--강조); }
 .딱지.판단 { border-color: #bf8700; color: #bf8700; font-weight: 700; }
-.자리딱지 { display: inline-block; font-size: 12px; margin-top: 2px; color: var(--흐린); }
+.딱지.신설, .딱지.추가 { border-color: var(--새것); color: var(--새것); font-weight: 600; }
+.딱지.변경 { border-color: var(--바꿈); color: var(--바꿈); font-weight: 600; }
+.딱지.항추가 { border-color: var(--더함); color: var(--더함); font-weight: 600; }
+.딱지.삭제, .딱지.제거 { border-color: var(--지움); color: var(--지움); font-weight: 600; }
+.자리딱지 { display: inline-block; font-size: 12px; margin-top: 4px; padding: 0 7px; border-radius: 6px; font-weight: 600;
+  color: var(--강조); background: color-mix(in srgb, var(--강조) 12%, transparent); border: 1px solid color-mix(in srgb, var(--강조) 40%, transparent); }
+.박스 > .자리딱지 { display: block; }
 .상태줄 { display: block; font-size: 13px; color: var(--흐린); margin-top: 2px; }
 .상태줄 b { color: var(--글); font-weight: 600; }
 .고르개 { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }

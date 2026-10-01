@@ -128,7 +128,7 @@ function 홈글() {
 function 항목줄(it, 열쇠) {
   const 수 = Object.keys(it.코멘트).length;
   const 열림 = 상태.열린 && 상태.열린.열쇠 === 열쇠 ? ' 열림' : '';
-  return `<button type="button" class="줄${열림}" data-열기="${막기(열쇠)}"><span class="딱지">${막기(종류글(it.종류))}</span>
+  return `<button type="button" class="줄${열림}" data-열기="${막기(열쇠)}"><span class="딱지 ${막기(it.종류)}">${막기(종류글(it.종류))}</span>
     <span class="제목">${꾸미기(it.이름)}<br><span class="자리딱지">${꾸미기(it.문서)}</span></span>
     ${it.표시 ? `<span class="딱지 답">${막기(it.표시)}</span>` : ''}${수 ? `<span class="딱지">코멘트 ${수}</span>` : ''}</button>`;
 }
@@ -234,7 +234,7 @@ function 박스그리기() {
   }).join('');
   const 수 = Object.keys(it.코멘트).length;
   const 안내 = 상태.알림 || (it.표시 ? `${it.표시} 찍힘 — 같은 단추를 다시 누르면 거둔다` : '') + (수 ? ` · 코멘트 ${수}개 — ${it.표시 ? '찍은 답에 딸려 AI가 반영한다' : '답 없이 단 코멘트는 물음이다'}` : '');
-  박스.innerHTML = `<div class="박스머리"><span class="딱지">${막기(종류글(it.종류))}</span><h2>${꾸미기(it.이름)}</h2>
+  박스.innerHTML = `<div class="박스머리"><span class="딱지 ${막기(it.종류)}">${막기(종류글(it.종류))}</span><h2>${꾸미기(it.이름)}</h2>
       <button type="button" class="작은단추 닫기" data-일="닫기">✕</button></div>
     <div class="자리딱지">${열린.종류 === '설계실' ? '확정하면 들어갈 자리' : '찍으면 글이 갈 자리'}: ${꾸미기(it.소속)}</div>
     <div><button type="button" class="달기" data-달기="제목">제목에 코멘트</button></div>${줄('제목')}
