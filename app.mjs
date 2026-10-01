@@ -77,7 +77,7 @@ function 그리기() {
   document.getElementById('시각').textContent = 시각글();
   if (!상태.통로) return 열쇠그리기();
   if (상태.읽는중 && !상태.곳들.length) { 본문.innerHTML = '<p class="안내">GitHub에서 읽는 중…</p>'; return; }
-  const 알림 = 상태.알림 ? `<p class="오류">${막기(상태.알림)}</p>` : '';
+  const 알림 = (상태.알림 ? `<p class="오류">${막기(상태.알림)}</p>` : '') + (코드알림 ? `<p class="오류">${막기(코드알림)}</p>` : '');
   const 글 = { 홈: 홈글, 의회: 의회글, 설계실: 설계실글, 작업: 작업글 }[상태.화면]();
   // 넓은 화면은 박스를 열지 않아도 두 칸으로 세우고, 빈 박스 칸에 안내를 보인다(제12조 ③) //
   const 두칸 = 상태.화면 !== '홈' && (!!상태.열린 || 넓은화면.matches);
@@ -297,7 +297,33 @@ document.addEventListener('click', (e) => {
   // 답 — 찍힌 단추는 빈 답을 보내 거둔다(제4조 ③) //
   if (d.답 !== undefined) { 적기((원문) => 표시붙인글(원문, 표식, d.답, 오늘(), 열린.문서), `상황판: 「${열린.항목.이름}」에 ${d.답 || '답 거둠'}`); }
 });
-document.getElementById('다시읽기').addEventListener('click', () => { if (상태.통로) 모두읽기(); });
+// [관리부 작업 422] bp-상황판 제1조 ⑥([확정 17]) — 다시 읽기는 문서와 함께 화면 코드도 캐시를 무시하고 새로 받는다. //
+//   이 화면이 받아 온 같은 곳(GitHub Pages)의 파일(화면·모양·부품)을 `cache: 'reload'`로 다시 받아 브라우저의 사본을 //
+//   바꾼 뒤 화면을 다시 띄우고, 다시 뜬 화면이 켤 때처럼 문서를 새로 읽는다. //
+// ★파일 목록은 적어 두지 않고 브라우저가 실제로 받아 온 기록(performance)에서 뽑는다 — 부품이 늘어도 빠지지 않는다. //
+//   문서는 GitHub API(다른 곳)나 시험 서버의 /api에서 오고 이미 매번 새로 받으니 뺀다. //
+// ★새로 받다 실패한 파일은 다시 뜬 화면에 알리고, 그 파일은 옛 사본으로 쓴다(조용히 넘기지 않는다). //
+const 코드알림열쇠 = '상황판:새로못받은파일';
+let 코드알림 = '';
+try { 코드알림 = sessionStorage.getItem(코드알림열쇠) || ''; sessionStorage.removeItem(코드알림열쇠); }
+catch (e) { 기록('ERROR 새로 못 받은 파일 알림을 못 읽었다: ' + e.message); }
+async function 화면코드새로받기() {
+  const 주소들 = [location.href.split('#')[0]].concat(performance.getEntriesByType('resource')
+    .filter((r) => r.name.startsWith(location.origin) && !new URL(r.name).pathname.startsWith('/api') && !['fetch', 'xmlhttprequest'].includes(r.initiatorType))
+    .map((r) => r.name));
+  const 못받음 = [];
+  await Promise.all([...new Set(주소들)].map(async (주소) => {
+    try { const r = await fetch(주소, { cache: 'reload' }); if (!r.ok) 못받음.push(주소 + ' (' + r.status + ')'); }
+    catch (e) { 기록('ERROR 화면 코드를 새로 못 받았다: ' + 주소 + ' — ' + e.message); 못받음.push(주소 + ' (' + e.message + ')'); }
+  }));
+  기록(`다시 읽기 — 화면 코드 ${new Set(주소들).size}개를 새로 받음${못받음.length ? ' · 못 받음 ' + 못받음.length : ''}`);
+  if (못받음.length) {
+    const 말 = '화면 코드 일부를 새로 못 받아 옛 사본으로 띄웠다: ' + 못받음.map((u) => u.replace(location.origin, '')).join(' · ');
+    try { sessionStorage.setItem(코드알림열쇠, 말); } catch (e) { 기록('ERROR 알림을 못 남겼다: ' + e.message); }
+  }
+  location.reload();
+}
+document.getElementById('다시읽기').addEventListener('click', () => { 화면코드새로받기(); });
 window.addEventListener('hashchange', () => { 상태.화면 = 화면이름(); 상태.열린 = null; 상태.쓰는줄 = null; 그리기(); });
 넓은화면.addEventListener('change', 그리기);
 function 화면이름() { const h = decodeURIComponent(location.hash.slice(1)); return ['홈', '의회', '설계실', '작업'].includes(h) ? h : '홈'; }
