@@ -82,6 +82,49 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     return 결과;
   }
 
+  // [관리부 작업 422] 제1조 ⑦([확정 19]) — 부서·프로젝트 저장소와 그 세 문서(작업·의회·설계실)의 글과 마지막 커밋 시각을 //
+  //   GitHub GraphQL 한 질문으로 받는다. 저장소마다 파일 목록 전체를 받지 않고 `.claude` 폴더가 있는지만 묻는다(제1조 ⑤). //
+  // 돌려주는 것: [{ 이름, 문서: { 'docs/work.md': { 글, 시각 } | null, … } }] — `.claude`가 있는 저장소만, 문서가 없으면 null. //
+  // ★GitHub이 글을 잘라 준 문서(isTruncated)는 파일읽기()로 다시 받는다 — 잘린 글을 그대로 쓰면 뒤쪽 항목이 사라진다. //
+  // 한계: 한 질문에 저장소 25곳씩 묻고 다음 쪽을 이어 묻는다 · 바꿀 때: 문서가 커져 GitHub이 시간 초과로 거절하면 그 수를 줄인다. //
+  const 세문서 = { work: 'docs/work.md', asm: 'docs/assembly.md', des: 'docs/설계실.md' };
+  async function 한꺼번에읽기() {
+    기록.log('[GitHub 통로] START 한꺼번에읽기');
+    const 글칸 = Object.entries(세문서).map(([k, p]) => `${k}: object(expression: "HEAD:${p}") { ... on Blob { text isTruncated } }`).join(' ');
+    const 시각칸 = Object.entries(세문서).map(([k, p]) => `${k}: history(first: 1, path: "${p}") { nodes { committedDate } }`).join(' ');
+    const 질문 = `query($cursor: String) { viewer { repositories(first: 25, after: $cursor, ownerAffiliations: OWNER) { pageInfo { hasNextPage endCursor } nodes { name claude: object(expression: "HEAD:.claude") { __typename } ${글칸} defaultBranchRef { target { ... on Commit { ${시각칸} } } } } } } }`;
+    const 결과 = [];
+    let 다음 = null, 쪽 = 0;
+    do {
+      const r = await 요청('POST', '/graphql', { query: 질문, variables: { cursor: 다음 } });
+      if (r.상태 !== 200 || !r.값 || r.값.errors || !r.값.data) {
+        const 말 = r.값 && r.값.errors ? r.값.errors.map((e) => e.message).join(' / ') : (r.값 && r.값.message) || '';
+        throw new Error(`한꺼번에 못 읽었다 — GitHub 응답 ${r.상태}${말 ? ': ' + 말 : ''}`);
+      }
+      const 저장소들 = r.값.data.viewer.repositories;
+      for (const n of 저장소들.nodes) {
+        if (!n.claude) continue;
+        const 시각들 = (n.defaultBranchRef && n.defaultBranchRef.target) || {};
+        const 문서 = {};
+        for (const [k, p] of Object.entries(세문서)) {
+          const b = n[k];
+          if (!b) { 문서[p] = null; continue; }
+          const 시각 = 시각들[k] && 시각들[k].nodes[0] ? 시각들[k].nodes[0].committedDate : null;
+          if (b.isTruncated || typeof b.text !== 'string') {
+            기록.log(`[GitHub 통로] ${n.name}/${p} 글이 잘려 와 따로 다시 받는다`);
+            const f = await 파일읽기(n.name, p);
+            문서[p] = f ? { 글: f.글, 시각 } : null;
+          } else 문서[p] = { 글: b.text, 시각 };
+        }
+        결과.push({ 이름: n.name, 문서 });
+      }
+      다음 = 저장소들.pageInfo.hasNextPage ? 저장소들.pageInfo.endCursor : null;
+      쪽++;
+    } while (다음);
+    기록.log(`[GitHub 통로] SUCCESS 한꺼번에읽기 — 질문 ${쪽}번 · 부서·프로젝트 ${결과.length}곳`);
+    return 결과;
+  }
+
   // 그 파일의 마지막 커밋 시각(UTC 글자) — 화면 맨 위에 보인다(제10조 ⑤). 커밋이 없으면 null. //
   async function 마지막커밋(저장소, 경로) {
     const r = await 요청('GET', `/repos/${주인}/${저장소}/commits?per_page=1&path=${encodeURIComponent(경로)}`);
@@ -112,5 +155,5 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     throw new Error(`세 번 다시 적었는데도 그사이 파일이 계속 바뀌었다: ${저장소}/${경로}`);
   }
 
-  return { 파일읽기, 파일목록, 부서저장소들, 마지막커밋, 고쳐쓰기 };
+  return { 파일읽기, 파일목록, 부서저장소들, 마지막커밋, 고쳐쓰기, 한꺼번에읽기 };
 }

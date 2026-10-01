@@ -13,6 +13,8 @@ import { fileURLToPath } from 'node:url';
 
 const 여기 = dirname(fileURLToPath(import.meta.url));
 const 관리부 = process.env.SB_MANAGEMENT || join(여기, '..', 'management');
+// 쓰기를 일부러 늦춘다(밀리초) — 진짜 GitHub이 커밋에 2~3초 걸리는 것을 흉내 내어, 찍자마자 벗어나는 경우를 잰다 //
+const 쓰기지연 = Number(process.env.SB_WRITE_DELAY_MS || 0);
 const 포트 = Number(process.env.PORT || 8787);
 
 // 저장소 이름 → 진짜 폴더. 관리부 · 관리부 아래 부서 둘 · projects 아래 프로젝트. //
@@ -73,7 +75,7 @@ const 서버 = createServer((요청, 응답) => {
       }
       if (요청.method === 'PUT') {
         let 몸 = ''; 요청.on('data', (c) => { 몸 += c; });
-        요청.on('end', () => {
+        요청.on('end', () => setTimeout(() => {
           try {
             const 값 = JSON.parse(몸);
             if (!existsSync(파일) || 지문(readFileSync(파일)) !== 값.sha) return 답(409, { message: 'sha does not match' });
@@ -83,7 +85,7 @@ const 서버 = createServer((요청, 응답) => {
             // 진짜 GitHub처럼 새 파일 지문과 커밋 시각을 돌려준다 — 화면이 이 값으로 다시 읽지 않고 그린다 //
             답(200, { content: { sha: 지문(새글) }, commit: { sha: 지문(새글), committer: { date: new Date().toISOString() } } });
           } catch (e) { console.error(`[시험 서버] ERROR 쓰기 실패: ${e.message}`); 답(500, { message: e.message }); }
-        });
+        }, 쓰기지연));
         return;
       }
     }

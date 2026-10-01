@@ -21,7 +21,7 @@ const 곳차례 = Object.keys(곳이름);
 const 열쇠읽기 = () => { try { return localStorage.getItem(열쇠자리) || ''; } catch (e) { 기록('열쇠를 못 읽었다: ' + e.message); return ''; } };
 const 열쇠쓰기 = (v) => { try { v ? localStorage.setItem(열쇠자리, v) : localStorage.removeItem(열쇠자리); } catch (e) { 기록('ERROR 열쇠를 못 적었다: ' + e.message); } };
 
-const 상태 = { 통로: null, 곳들: [], 의회: null, 화면: '홈', 작업곳: 'management', 열린: null, 쓰는줄: null, 알림: '', 읽는중: false };
+const 상태 = { 통로: null, 곳들: [], 의회: null, 화면: '홈', 작업곳: 'management', 열린: null, 쓰는줄: null, 알림: '', 읽는중: false, 원문: {} };
 const 본문 = document.getElementById('본문');
 const 덮개 = document.getElementById('박스덮개');
 const 박스 = document.getElementById('박스');
@@ -43,7 +43,7 @@ async function 모두읽기() {
         if (!곳.목록.includes(경로)) return;   // 그 곳에 그 문서가 없다 — 정상 //
         try {
           const [f, 시각] = await Promise.all([상태.통로.파일읽기(곳.이름, 경로), 상태.통로.마지막커밋(곳.이름, 경로)]);
-          if (f) { 넣기(f.글); 결과.시각[경로] = 시각; }
+          if (f) { 상태.원문[곳.이름 + '/' + 경로] = f.글; 넣기(f.글); 결과.시각[경로] = 시각; }
         } catch (e) { 결과.오류.push(`${경로}: ${e.message}`); 기록(`ERROR ${곳.이름}/${경로} 못 읽음 — ${e.message}`); }
       };
       await Promise.all([
@@ -77,7 +77,7 @@ function 그리기() {
   document.getElementById('시각').textContent = 시각글();
   if (!상태.통로) return 열쇠그리기();
   if (상태.읽는중 && !상태.곳들.length) { 본문.innerHTML = '<p class="안내">GitHub에서 읽는 중…</p>'; return; }
-  const 알림 = (상태.알림 ? `<p class="오류">${막기(상태.알림)}</p>` : '') + (코드알림 ? `<p class="오류">${막기(코드알림)}</p>` : '');
+  const 알림 = 적는줄알림() + (상태.알림 ? `<p class="오류">${막기(상태.알림)}</p>` : '') + (코드알림 ? `<p class="오류">${막기(코드알림)}</p>` : '');
   const 글 = { 홈: 홈글, 의회: 의회글, 설계실: 설계실글, 작업: 작업글 }[상태.화면]();
   // 넓은 화면은 박스를 열지 않아도 두 칸으로 세우고, 빈 박스 칸에 안내를 보인다(제12조 ③) //
   const 두칸 = 상태.화면 !== '홈' && (!!상태.열린 || 넓은화면.matches);
@@ -258,23 +258,83 @@ function 코멘트줄(it, 키) {
 }
 
 // ── 쓰기 ─────────────────────────────────────────────────────────────── //
-// 답이나 코멘트를 그 파일 그 줄에 적고 바로 커밋한다(제10조 ③). 그사이 바뀌면 통로가 다시 읽어 그 위에 적는다(④). //
-async function 적기(바꾸기, 메시지) {
+// [관리부 작업 422] 제10조 ⑥([확정 18]) — 답이나 코멘트는 누르는 순간 찍힌 모양으로 그리고, 이 기기에 「적을 답」으로 먼저 //
+//   저장한 뒤 GitHub에 뒤에서 하나씩 적는다(③). 그사이 파일이 바뀌면 통로가 다시 읽어 그 위에 적는다(④). //
+// ★적을 답은 함수가 아니라 값({곳·파일·법안 제목·무엇을})으로 저장한다 — 앱을 벗어나 끊겨도 다음에 열 때 같은 값으로 //
+//   다시 만들어 마저 적는다. 한 번에 하나씩 적어 두 답이 같은 파일을 동시에 고치지 않는다. //
+// ★세 번 적어도 못 적은 답은 지우지 않고 「못 적은 답」으로 남겨 화면 위에 다시 적기 단추를 보인다(조용히 버리지 않는다). //
+const 적을답자리 = 'sb.적을답';
+const 적을답읽기 = () => { try { return JSON.parse(localStorage.getItem(적을답자리) || '[]'); } catch (e) { 기록('ERROR 적을 답을 못 읽었다: ' + e.message); return []; } };
+const 적을답쓰기 = (줄) => { try { 줄.length ? localStorage.setItem(적을답자리, JSON.stringify(줄)) : localStorage.removeItem(적을답자리); } catch (e) { 기록('ERROR 적을 답을 못 저장했다 — 앱을 벗어나면 이 답은 사라질 수 있다: ' + e.message); } };
+let 적을답 = 적을답읽기();
+let 적는중 = false;
+let 다비면 = [];   // 적을 답이 다 비면 부를 것들 — 다시 읽기가 기다린다 //
+
+const 바꾸기만들기 = (a) => (원문) => a.무엇 === '답'
+  ? 표시붙인글(원문, a.표식, a.답, a.날짜, a.문서)
+  : 코멘트붙인글(원문, a.표식, a.키, a.글, a.날짜);
+
+// 그 파일의 받아 둔 글 위에 아직 못 적은 답을 얹어 그린다 — 찍은 모양이 화면에서 사라지지 않게 //
+function 얹어그리기(저장소, 경로, 글, 시각) {
+  const 얹은 = 적을답.filter((a) => a.저장소 === 저장소 && a.경로 === 경로).reduce((g, a) => 바꾸기만들기(a)(g), 글);
+  적은글넣기(저장소, 경로, 얹은, 시각);
+}
+
+function 찍기(값) {
   const 열린 = 열린것();
   if (!열린 || !열린.경로) return;
-  상태.알림 = '적는 중…'; 박스그리기();
-  기록(`START 적기 — ${열린.저장소}/${열린.경로}: ${메시지}`);
-  try {
-    const r = await 상태.통로.고쳐쓰기(열린.저장소, 열린.경로, 바꾸기, 메시지);
-    if (r.바뀜) 적은글넣기(열린.저장소, 열린.경로, r.글, r.시각);
-    상태.알림 = r.바뀜 ? '' : '바뀐 것이 없다';
-    상태.쓰는줄 = null;
-    기록(`SUCCESS 적기 — ${r.커밋 ? r.커밋.slice(0, 7) : '커밋 없음'}`);
-  } catch (e) {
-    상태.알림 = '못 적었다: ' + e.message;
-    기록('ERROR 적기 — ' + e.message);
-  }
+  const a = { ...값, 번호: Date.now() + Math.random(), 저장소: 열린.저장소, 경로: 열린.경로, 문서: 열린.문서, 표식: 열린.항목.제목, 날짜: 오늘(), 못적음: '' };
+  적을답.push(a); 적을답쓰기(적을답);
+  기록(`찍음 — ${a.저장소}/${a.경로}: ${a.메시지} (적을 답 ${적을답.length}건)`);
+  const 원문 = 상태.원문[a.저장소 + '/' + a.경로];
+  if (원문 !== undefined) 얹어그리기(a.저장소, a.경로, 원문, null);
+  상태.쓰는줄 = null; 상태.알림 = '';
   그리기();
+  줄돌리기();
+}
+
+async function 줄돌리기() {
+  if (적는중 || !상태.통로) return;
+  적는중 = true;
+  for (;;) {
+    const a = 적을답.find((x) => !x.못적음);
+    if (!a) break;
+    그리기();
+    기록(`START 적기 — ${a.저장소}/${a.경로}: ${a.메시지}`);
+    try {
+      const r = await 상태.통로.고쳐쓰기(a.저장소, a.경로, 바꾸기만들기(a), a.메시지);
+      적을답 = 적을답.filter((x) => x.번호 !== a.번호); 적을답쓰기(적을답);
+      if (r.바뀜) { 상태.원문[a.저장소 + '/' + a.경로] = r.글; 얹어그리기(a.저장소, a.경로, r.글, r.시각); }
+      기록(`SUCCESS 적기 — ${r.커밋 ? r.커밋.slice(0, 7) : '바뀐 것 없음'}`);
+    } catch (e) {
+      a.못적음 = e.message; 적을답쓰기(적을답);
+      기록('ERROR 적기 — ' + e.message);
+    }
+  }
+  적는중 = false;
+  그리기();
+  const 부를것 = 다비면; 다비면 = [];
+  부를것.forEach((f) => f());
+}
+const 다적을때까지 = () => (적을답.some((x) => !x.못적음) || 적는중) ? new Promise((r) => { 다비면.push(r); 줄돌리기(); }) : Promise.resolve();
+
+// 켤 때 — 받은 글 위에 남은 답을 얹어 보이고 마저 적는다 //
+function 남은답이어적기() {
+  if (!적을답.length) return;
+  기록(`켤 때 남은 적을 답 ${적을답.length}건 — 마저 적는다`);
+  for (const k of new Set(적을답.map((a) => a.저장소 + '/' + a.경로))) {
+    const [저장소, ...p] = k.split('/');
+    if (상태.원문[k] !== undefined) 얹어그리기(저장소, p.join('/'), 상태.원문[k], null);
+  }
+  적을답.forEach((a) => { a.못적음 = ''; });
+  그리기();
+  줄돌리기();
+}
+
+function 적는줄알림() {
+  const 남음 = 적을답.filter((a) => !a.못적음).length, 못 = 적을답.filter((a) => a.못적음);
+  return (남음 ? `<p class="안내 적는중">GitHub에 적는 중 ${남음}건 — 다 적힐 때까지 앱을 열어 두면 바로 들어가고, 벗어나도 다음에 열 때 마저 적는다</p>` : '')
+    + (못.length ? `<p class="오류">못 적은 답 ${못.length}건 — ${막기(못[0].못적음)} <button type="button" class="작은단추" data-일="다시적기">다시 적기</button></p>` : '');
 }
 
 document.addEventListener('click', (e) => {
@@ -289,13 +349,13 @@ document.addEventListener('click', (e) => {
   if (d.일 === '그만') { 상태.쓰는줄 = null; 박스그리기(); return; }
   if (d.일 === '열쇠저장') { const v = document.getElementById('열쇠').value.trim(); if (v) { 열쇠쓰기(v); 시작(); } return; }
   if (d.달기) { 상태.쓰는줄 = d.달기; 박스그리기(); const a = document.getElementById('코멘트쓰기'); if (a) a.focus(); return; }
+  if (d.일 === '다시적기') { 적을답.forEach((a) => { a.못적음 = ''; }); 적을답쓰기(적을답); 줄돌리기(); return; }
   const 열린 = 열린것();
   if (!열린) return;
-  const 표식 = 열린.항목.제목;
-  if (d.저장 !== undefined) { const 글 = (document.getElementById('코멘트쓰기') || {}).value || ''; 적기((원문) => 코멘트붙인글(원문, 표식, d.저장, 글, 오늘()), `상황판: 「${열린.항목.이름}」 ${d.저장}에 코멘트`); return; }
-  if (d.지움) { 적기((원문) => 코멘트붙인글(원문, 표식, d.지움, '', 오늘()), `상황판: 「${열린.항목.이름}」 ${d.지움} 코멘트 걷음`); return; }
+  if (d.저장 !== undefined) { const 글 = (document.getElementById('코멘트쓰기') || {}).value || ''; 찍기({ 무엇: '코멘트', 키: d.저장, 글, 메시지: `상황판: 「${열린.항목.이름}」 ${d.저장}에 코멘트` }); return; }
+  if (d.지움) { 찍기({ 무엇: '코멘트', 키: d.지움, 글: '', 메시지: `상황판: 「${열린.항목.이름}」 ${d.지움} 코멘트 걷음` }); return; }
   // 답 — 찍힌 단추는 빈 답을 보내 거둔다(제4조 ③) //
-  if (d.답 !== undefined) { 적기((원문) => 표시붙인글(원문, 표식, d.답, 오늘(), 열린.문서), `상황판: 「${열린.항목.이름}」에 ${d.답 || '답 거둠'}`); }
+  if (d.답 !== undefined) { 찍기({ 무엇: '답', 답: d.답, 메시지: `상황판: 「${열린.항목.이름}」에 ${d.답 || '답 거둠'}` }); }
 });
 // [관리부 작업 422] bp-상황판 제1조 ⑥([확정 17]) — 다시 읽기는 문서와 함께 화면 코드도 캐시를 무시하고 새로 받는다. //
 //   이 화면이 받아 온 같은 곳(GitHub Pages)의 파일(화면·모양·부품)을 `cache: 'reload'`로 다시 받아 브라우저의 사본을 //
@@ -323,7 +383,11 @@ async function 화면코드새로받기() {
   }
   location.reload();
 }
-document.getElementById('다시읽기').addEventListener('click', () => { 화면코드새로받기(); });
+// 다시 읽기는 적는 중인 답을 다 적은 뒤에 화면을 다시 띄운다 — 띄우면서 적는 일을 끊지 않게(제10조 ⑥) //
+document.getElementById('다시읽기').addEventListener('click', async () => {
+  if (적을답.some((a) => !a.못적음) || 적는중) { 상태.알림 = '적는 중인 답을 다 적은 뒤 다시 띄운다'; 그리기(); await 다적을때까지(); }
+  화면코드새로받기();
+});
 window.addEventListener('hashchange', () => { 상태.화면 = 화면이름(); 상태.열린 = null; 상태.쓰는줄 = null; 그리기(); });
 넓은화면.addEventListener('change', 그리기);
 function 화면이름() { const h = decodeURIComponent(location.hash.slice(1)); return ['홈', '의회', '설계실', '작업'].includes(h) ? h : '홈'; }
@@ -333,6 +397,6 @@ function 시작() {
   const 열쇠 = 열쇠읽기();
   if (!열쇠) { 상태.통로 = null; 그리기(); return; }
   상태.통로 = 통로만들기({ 열쇠, API, 기록: { log: 기록 } });
-  모두읽기();
+  모두읽기().then(남은답이어적기);
 }
 시작();
