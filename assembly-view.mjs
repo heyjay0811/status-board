@@ -202,7 +202,7 @@ export function 항밖글(줄들) {
 //   가르고, 같은 갈래끼리 이어 붙여 돌려준다. 결과가 되는 줄은 스킬 법안의 인용 본문(`> ---` 줄부터 인용이 끝날 때까지)과 //
 //   훅 법안의 코드 울타리 안이고, 지워질 줄은 「삭제:」로 시작하는 줄이다. //
 export function 앞글나누기(글, 소속) {
-  var 소 = String(소속 || ''), 스킬 = 소.indexOf('스킬 `') >= 0, 훅 = 소.indexOf('훅 `') >= 0;
+  var 소 = String(소속 || ''), 스킬 = 소.indexOf('스킬 `') >= 0 || 소.indexOf('담당 `') >= 0, 훅 = 소.indexOf('훅 `') >= 0;
   var 조각 = [], 스킬안 = false, 울타리안 = false;
   String(글 || '').split('\n').forEach(function (l) {
     var t = l.trim(), 종류 = '';
@@ -216,6 +216,88 @@ export function 앞글나누기(글, 소속) {
     else 조각.push({ 종류: 종류, 글: l });
   });
   return 조각;
+}
+
+// [관리부 작업 422] bp-상황판 제6조 ㉓([확정 16]) — 승인되면 생길 파일을 그 모양대로 미리 보인다. //
+//   글은 앞글나누기()가 「될」로 가른 조각이다. 스킬·담당 법안은 인용 표시를 걷고 머리 칸(--- 사이)을 표로, //
+//   본문을 마크다운으로 그린다. 훅 법안은 코드 울타리를 걷고 맨 위 세 줄 주석을 글로, 나머지를 코드 칸으로 그린다. //
+// ★스킬·담당·훅 법안이 아니면 null을 돌려준다 — 부르는 쪽이 원래대로 글자 그대로 그린다. //
+var 머리이름 = { name: '이름', description: '언제 부르나', tools: '쓸 도구', skills: '미리 싣는 스킬' };
+export function 파일미리보기(글, 소속) {
+  var 소 = String(소속 || '');
+  var 줄 = String(글 || '').split('\n');
+  if (소.indexOf('훅 `') >= 0) {
+    var 코드 = 줄.filter(function (l) { return l.trim().indexOf(의회백틱 + 의회백틱 + 의회백틱) !== 0; });
+    var 머리 = [];
+    while (머리.length < 3 && 코드.length && 코드[0].trim().indexOf('//') === 0) 머리.push(코드.shift().trim().replace(/^\/\/\s?/, '').replace(/\s?\/\/$/, ''));
+    return '<div class="훅머리">' + 머리.map(function (m) { return '<div>' + 꾸미기(m) + '</div>'; }).join('') + '</div>' +
+      '<pre class="코드칸"><code>' + 막기(코드.join('\n')) + '</code></pre>';
+  }
+  if (소.indexOf('스킬 `') < 0 && 소.indexOf('담당 `') < 0) return null;
+  var 벗김 = 줄.map(function (l) { return l.replace(/^\s*>\s?/, ''); });
+  while (벗김.length && !벗김[0].trim()) 벗김.shift();
+  var 표 = '';
+  if (벗김.length && 벗김[0].trim() === '---') {
+    var 끝 = 벗김.indexOf('---', 1);
+    if (끝 < 0) { 의회기록('ERROR 파일 미리보기: 머리 칸을 닫는 --- 줄이 없다 — 머리 칸을 본문으로 그린다'); }
+    else {
+      var 칸 = [], 이번 = null;
+      벗김.slice(1, 끝).forEach(function (l) {
+        var m = /^([A-Za-z_-]+):\s*(.*)$/.exec(l);
+        if (m) { 이번 = { 키: m[1], 값: m[2] }; 칸.push(이번); }
+        else if (이번 && l.trim()) 이번.값 += (이번.값 ? ' · ' : '') + l.trim().replace(/^-\s*/, '');
+      });
+      표 = '<table class="머리칸">' + 칸.map(function (c) {
+        return '<tr><th>' + 막기(머리이름[c.키] || c.키) + '</th><td>' + 꾸미기(c.값) + '</td></tr>';
+      }).join('') + '</table>';
+      벗김 = 벗김.slice(끝 + 1);
+    }
+  }
+  return 표 + 마크다운그리기(벗김.join('\n'));
+}
+
+// 제6조 ㉓ — 스킬·담당 본문의 마크다운을 그린다. 다루는 것: 제목(#~####) · 번호 목록 · 글머리 목록(들여쓰기 한 단) · //
+//   표 · 코드 울타리 · 인용 · 문단. 줄 안의 꾸밈은 꾸미기()(굵게·코드)다. 다루지 않는 문법은 글자 그대로 남는다. //
+export function 마크다운그리기(글) {
+  var 줄 = String(글 || '').split('\n'), 밖 = [], i = 0, 울 = 의회백틱 + 의회백틱 + 의회백틱;
+  var 표줄 = function (l) { return /^\s*\|.*\|\s*$/.test(l); };
+  var 칸들 = function (l) { return l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); }); };
+  while (i < 줄.length) {
+    var l = 줄[i], t = l.trim(), m;
+    if (!t) { i++; continue; }
+    if (t.indexOf(울) === 0) {
+      var 속 = []; i++;
+      while (i < 줄.length && 줄[i].trim().indexOf(울) !== 0) 속.push(줄[i++]);
+      i++; 밖.push('<pre class="코드칸"><code>' + 막기(속.join('\n')) + '</code></pre>'); continue;
+    }
+    if ((m = /^(#{1,4})\s+(.*)$/.exec(t))) { 밖.push('<div class="마제목 마제목' + m[1].length + '">' + 꾸미기(m[2]) + '</div>'); i++; continue; }
+    if (표줄(l)) {
+      var 행 = [];
+      while (i < 줄.length && 표줄(줄[i])) 행.push(줄[i++]);
+      var 머 = 칸들(행[0]), 몸 = 행.slice(1).filter(function (r) { return !/^\s*\|[\s|:-]+\|\s*$/.test(r); });
+      밖.push('<table class="마표"><tr>' + 머.map(function (c) { return '<th>' + 꾸미기(c) + '</th>'; }).join('') + '</tr>' +
+        몸.map(function (r) { return '<tr>' + 칸들(r).map(function (c) { return '<td>' + 꾸미기(c) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>');
+      continue;
+    }
+    if (/^\s*(\d+\.|[-*])\s+/.test(l)) {
+      var 항목 = [];
+      while (i < 줄.length && /^\s*(\d+\.|[-*])\s+/.test(줄[i])) {
+        var mm = /^(\s*)(\d+\.|[-*])\s+(.*)$/.exec(줄[i]);
+        항목.push('<div class="마목' + (mm[1].length >= 2 ? ' 마목안' : '') + '"><span class="마표지">' + (/\d/.test(mm[2]) ? 막기(mm[2]) : '•') + '</span>' + 꾸미기(mm[3]) + '</div>');
+        i++;
+      }
+      밖.push(항목.join('')); continue;
+    }
+    if (t.indexOf('>') === 0) {
+      var 인 = [];
+      while (i < 줄.length && 줄[i].trim().indexOf('>') === 0) 인.push(줄[i++].trim().replace(/^>\s?/, ''));
+      밖.push('<div class="마인용">' + 마크다운그리기(인.join('\n')) + '</div>'); continue;
+    }
+    var 문 = [];
+    while (i < 줄.length && 줄[i].trim() && !표줄(줄[i]) && !/^\s*(\d+\.|[-*])\s+/.test(줄[i]) && !/^#{1,4}\s/.test(줄[i].trim()) && 줄[i].trim().indexOf(울) !== 0 && 줄[i].trim().indexOf('>') !== 0) 문.push(줄[i++].trim());
+    밖.push('<p class="마문">' + 꾸미기(문.join(' ')) + '</p>');
+  }
+  return 밖.join('');
 }
 
 // 「제4조」처럼 적힌 데서 «처음 나오는» 조 번호를 집는다 — 조 제목 줄(## 제N조 …)을 읽는 자다. //
@@ -448,7 +530,7 @@ export function 갈문서(제목) {
 // ★큰 묶음은 주인(회장실 → 전역 → 관리부 → 그 밖의 곳) 다음 종류(규칙 → 매 턴 규칙 → 경로 규칙 → 설계 → 스킬 → 훅) 차례다. //
 //   같은 차례 안과 한 묶음 안의 법안은 올라온 차례 그대로다(정렬이 안정적이다). //
 var 주인차례 = { 회장실: 0, 전역: 1, 관리부: 2 };
-var 종류차례 = { 규칙: 0, '매 턴 규칙': 1, '경로 규칙': 2, 설계: 3, 스킬: 4, 훅: 5 };
+var 종류차례 = { 규칙: 0, '매 턴 규칙': 1, '경로 규칙': 2, 설계: 3, 스킬: 4, 담당: 5, 훅: 6 };
 
 // bp-상황판 제6조 ⑯ — 작은 묶음(갈 문서)의 열쇠와 머리 줄 이름. 주소는 소속자리()가 알아낸 실물 파일 주소(박스가 지금 //
 //   글을 읽는 그 파일)이고, 열쇠와 이름을 그 주소에서 만든다 — 소속 글자로 가르면 「`rule-개발`」과 「`rule-개발.md`」처럼 //

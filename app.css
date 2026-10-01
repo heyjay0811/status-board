@@ -78,6 +78,24 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .항 .기호 { font-weight: 700; margin-right: 4px; }
 .항.흐림 { opacity: .5; }
 .될 { background: var(--초록); border-radius: 4px; padding: 4px 6px; }
+/* 생길 파일 미리보기 — 스킬·담당·훅 법안(제6조 ㉓). 머리 칸 표 · 마크다운 본문 · 코드 칸. */
+.미리보기 { font-size: 14px; padding: 8px 10px; overflow-wrap: anywhere; }
+.머리칸 { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 13px; }
+.머리칸 th { text-align: left; white-space: nowrap; padding: 3px 8px 3px 0; color: var(--흐린); font-weight: 600; vertical-align: top; }
+.머리칸 td { padding: 3px 0; }
+.머리칸 tr + tr th, .머리칸 tr + tr td { border-top: 1px solid var(--선); }
+.마제목 { font-weight: 700; margin: 10px 0 4px; }
+.마제목1 { font-size: 17px; } .마제목2 { font-size: 15px; } .마제목3, .마제목4 { font-size: 14px; }
+.마문 { margin: 4px 0; }
+.마목 { display: flex; gap: 6px; margin: 2px 0; }
+.마목안 { margin-left: 18px; }
+.마표지 { flex: none; min-width: 1.4em; color: var(--흐린); }
+.마표 { border-collapse: collapse; margin: 6px 0; font-size: 13px; }
+.마표 th, .마표 td { border: 1px solid var(--선); padding: 3px 6px; vertical-align: top; text-align: left; }
+.마인용 { border-left: 3px solid var(--선); padding-left: 8px; margin: 4px 0; color: var(--흐린); }
+.코드칸 { background: var(--칸); border: 1px solid var(--선); border-radius: 6px; padding: 8px; margin: 6px 0; font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre; }
+.훅머리 { margin-bottom: 4px; }
+.훅머리 div:first-child { font-weight: 700; }
 .지울 { background: var(--빨강); border-radius: 4px; padding: 4px 6px; }
 mark { background: var(--노랑); color: inherit; }
 .될 mark { background: rgba(48,164,108,.45); }

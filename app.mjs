@@ -8,7 +8,7 @@ import { 통로만들기 } from './github.mjs';
 import { 표시붙인글, 코멘트붙인글 } from './doc-mark.mjs';
 import { 법안읽기, 고를답, 곳이름 } from './bill-parse.mjs';
 import { 항목분해, 상태줄읽기 } from './doc-parse.mjs';
-import { 막기, 꾸미기, 달라진데, 지운데, 앞줄표시나누기, 항밖글, 앞글나누기, 자리벗기기, 같은글, 자리묶기, 묶은목록 } from './assembly-view.mjs';
+import { 막기, 꾸미기, 달라진데, 지운데, 앞줄표시나누기, 항밖글, 앞글나누기, 파일미리보기, 자리벗기기, 같은글, 자리묶기, 묶은목록 } from './assembly-view.mjs';
 
 const 기록 = (말) => console.log('[상황판] ' + 말);
 const 열쇠자리 = 'sb.열쇠';
@@ -201,10 +201,15 @@ function 박스그리기() {
   const it = 열린.항목;
   const 줄 = (키) => 코멘트줄(it, 키);
   // 항 밖 줄 — 적힌 차례 그대로(제6조 ⑰). 표시 블록((변경)·(신설)·(추가))은 지금 → 고칠 글로 칠한다 //
+  //   스킬·담당·훅 법안의 될 글(생길 파일)은 그 파일 모양대로 미리 보인다(제6조 ㉓) //
   const 앞 = 앞줄표시나누기(it.앞줄).map((p) => {
     if (p.종류 === '글') {
       const g = 항밖글(p.글.split('\n'));
-      return g ? 앞글나누기(g, it.소속).map((q) => `<div class="앞글${q.종류 === '될' ? ' 될' : q.종류 === '지울' ? ' 지울' : ''}">${꾸미기(q.글)}</div>`).join('') : '';
+      return g ? 앞글나누기(g, it.소속).map((q) => {
+        const 미리 = q.종류 === '될' ? 파일미리보기(q.글, it.소속) : null;
+        if (미리 !== null) return `<div class="미리보기 될">${미리}</div>`;
+        return `<div class="앞글${q.종류 === '될' ? ' 될' : q.종류 === '지울' ? ' 지울' : ''}">${꾸미기(q.글)}</div>`;
+      }).join('') : '';
     }
     const 자리 = `<b>${막기(p.자리)}</b> `;
     if (p.표 === '신설') return `<div class="항 될">${자리}${꾸미기(p.고칠)}</div>`;
