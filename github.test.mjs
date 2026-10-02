@@ -93,6 +93,25 @@ console.log('[github 시험] START');
   let 던짐 = ''; try { await 통로.부서저장소들(); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
   확인('열쇠 없이 저장소 목록을 부르면 「열쇠가 맞는지」를 알리며 던진다', 던짐.includes('열쇠'), 던짐);
 }
+// ── 지문(ETag)으로 묻기 — 관리부 설계 bp-상황판 제1조 ⑦ ───────────────────────── //
+{
+  const 보낸지문 = [];
+  const 가짜 = async (주소, 옵션) => {
+    보낸지문.push(옵션.headers['If-None-Match'] || '');
+    const 지금지문 = '"e2"';
+    if (옵션.headers['If-None-Match'] === 지금지문) return { status: 304, headers: { get: () => 지금지문 }, text: async () => '' };
+    return { status: 200, headers: { get: (h) => (h.toLowerCase() === 'etag' ? 지금지문 : null) }, text: async () => JSON.stringify({ type: 'file', content: b64('새 글'), sha: 's2' }) };
+  };
+  const 통로 = 통로만들기({ 열쇠: 'k', fetch: 가짜, 기록: 조용히 });
+  const 처음 = await 통로.파일읽기('a', 'docs/work.md');
+  확인('지문 없이 읽으면 글과 함께 지문을 돌려준다', 처음 && 처음.글 === '새 글' && 처음.지문 === '"e2"', JSON.stringify(처음));
+  const 같음 = await 통로.파일읽기('a', 'docs/work.md', '"e2"');
+  확인('같은 지문으로 물으면 304를 받아 「안 바뀜」을 돌려준다', 같음 && 같음.안바뀜 === true && !같음.글, JSON.stringify(같음));
+  확인('지문을 If-None-Match에 실어 보낸다', 보낸지문[1] === '"e2"', 보낸지문.join(','));
+  const 다름 = await 통로.파일읽기('a', 'docs/work.md', '"e1"');
+  확인('옛 지문으로 물으면 새 글과 새 지문을 받는다', 다름 && 다름.글 === '새 글' && 다름.지문 === '"e2"' && !다름.안바뀜, JSON.stringify(다름));
+}
+
 if (process.argv.includes('--live')) { // 공개 저장소를 실제로 읽는다 — 열쇠 없이 //
   const 통로 = 통로만들기({ 주인: 'heyjay0811', 기록: 조용히 });
   const 읽음 = await 통로.파일읽기('status-board', 'README.md');

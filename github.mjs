@@ -35,8 +35,8 @@ function b64를글(b64) {
 export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진짜API, fetch: 부르기 = globalThis.fetch?.bind(globalThis), 기록 = console } = {}) {
   if (typeof 부르기 !== 'function') throw new Error('fetch가 없는 곳이다 — 이 통로를 쓸 수 없다');
 
-  async function 요청(방법, 주소, 몸) {
-    const 머리 = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+  async function 요청(방법, 주소, 몸, 덧머리) {
+    const 머리 = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(덧머리 || {}) };
     if (열쇠) 머리.Authorization = `Bearer ${열쇠}`;
     if (몸) 머리['Content-Type'] = 'application/json';
     const r = await 부르기(API + 주소, { method: 방법, headers: 머리, body: 몸 ? JSON.stringify(몸) : undefined, cache: 'no-store' });
@@ -44,19 +44,22 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     let 값 = null;
     // GitHub은 보통 JSON을 주지만 오류 쪽은 글 그대로 올 때가 있다 — 그때는 글을 값으로 두고 남긴다 //
     try { 값 = 글 ? JSON.parse(글) : null; } catch (e) { 기록.log(`[GitHub 통로] 응답이 JSON이 아니다(${r.status}) — 글 그대로 쓴다: ${e.message}`); 값 = 글; }
-    return { 상태: r.status, 값 };
+    return { 상태: r.status, 값, 지문: r.headers && r.headers.get ? r.headers.get('etag') : null };
   }
   const 실패 = (무엇, r) => new Error(`${무엇} — GitHub 응답 ${r.상태}${r.값 && r.값.message ? ': ' + r.값.message : ''}`);
 
   // 파일 하나를 읽는다. 없으면 null, 못 읽으면 던진다. //
-  async function 파일읽기(저장소, 경로) {
-    기록.log(`[GitHub 통로] START 파일읽기 — ${저장소}/${경로}`);
-    const r = await 요청('GET', `/repos/${주인}/${저장소}/contents/${경로감싸기(경로)}`);
+  // [관리부 작업 422] 제1조 ⑦([확정 19]) — 지난번 받은 지문(ETag)을 넘기면 「이 지문과 같으면 보내지 마라」(If-None-Match)로 //
+  //   묻는다. 안 바뀌었으면 GitHub이 304만 보내고 { 안바뀜: true }를, 바뀌었으면 새 글과 새 지문을 돌려준다. //
+  async function 파일읽기(저장소, 경로, 지문 = null) {
+    기록.log(`[GitHub 통로] START 파일읽기 — ${저장소}/${경로}${지문 ? ' (지문으로 묻기)' : ''}`);
+    const r = await 요청('GET', `/repos/${주인}/${저장소}/contents/${경로감싸기(경로)}`, null, 지문 ? { 'If-None-Match': 지문 } : null);
+    if (r.상태 === 304) { 기록.log(`[GitHub 통로] SUCCESS 안 바뀜 — ${저장소}/${경로}`); return { 안바뀜: true, 지문 }; }
     if (r.상태 === 404) { 기록.log(`[GitHub 통로] SUCCESS 파일 없음 — ${저장소}/${경로}`); return null; }
     if (r.상태 !== 200 || !r.값 || r.값.type !== 'file') throw 실패(`파일을 못 읽었다: ${저장소}/${경로}`, r);
     const 글 = b64를글(r.값.content);
     기록.log(`[GitHub 통로] SUCCESS 파일읽기 — ${저장소}/${경로} ${글.length}자`);
-    return { 글, sha: r.값.sha };
+    return { 글, sha: r.값.sha, 지문: r.지문 };
   }
 
   // 저장소의 파일 경로 전부 — 설계실·의회·작업 문서를 이름을 코드에 적지 않고 이 목록에서 찾는다(제1조 ④). //
@@ -79,49 +82,6 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     const 결과 = [];
     r.값.forEach((저장소, i) => { if (목록들[i].some((p) => p.startsWith('.claude/'))) 결과.push({ 이름: 저장소.name, 목록: 목록들[i] }); });
     기록.log(`[GitHub 통로] SUCCESS 부서저장소들 — ${r.값.length}곳 가운데 ${결과.length}곳`);
-    return 결과;
-  }
-
-  // [관리부 작업 422] 제1조 ⑦([확정 19]) — 부서·프로젝트 저장소와 그 세 문서(작업·의회·설계실)의 글과 마지막 커밋 시각을 //
-  //   GitHub GraphQL 한 질문으로 받는다. 저장소마다 파일 목록 전체를 받지 않고 `.claude` 폴더가 있는지만 묻는다(제1조 ⑤). //
-  // 돌려주는 것: [{ 이름, 문서: { 'docs/work.md': { 글, 시각 } | null, … } }] — `.claude`가 있는 저장소만, 문서가 없으면 null. //
-  // ★GitHub이 글을 잘라 준 문서(isTruncated)는 파일읽기()로 다시 받는다 — 잘린 글을 그대로 쓰면 뒤쪽 항목이 사라진다. //
-  // 한계: 한 질문에 저장소 25곳씩 묻고 다음 쪽을 이어 묻는다 · 바꿀 때: 문서가 커져 GitHub이 시간 초과로 거절하면 그 수를 줄인다. //
-  const 세문서 = { work: 'docs/work.md', asm: 'docs/assembly.md', des: 'docs/설계실.md' };
-  async function 한꺼번에읽기() {
-    기록.log('[GitHub 통로] START 한꺼번에읽기');
-    const 글칸 = Object.entries(세문서).map(([k, p]) => `${k}: object(expression: "HEAD:${p}") { ... on Blob { text isTruncated } }`).join(' ');
-    const 시각칸 = Object.entries(세문서).map(([k, p]) => `${k}: history(first: 1, path: "${p}") { nodes { committedDate } }`).join(' ');
-    const 질문 = `query($cursor: String) { viewer { repositories(first: 25, after: $cursor, ownerAffiliations: OWNER) { pageInfo { hasNextPage endCursor } nodes { name claude: object(expression: "HEAD:.claude") { __typename } ${글칸} defaultBranchRef { target { ... on Commit { ${시각칸} } } } } } } }`;
-    const 결과 = [];
-    let 다음 = null, 쪽 = 0;
-    do {
-      const r = await 요청('POST', '/graphql', { query: 질문, variables: { cursor: 다음 } });
-      if (r.상태 !== 200 || !r.값 || r.값.errors || !r.값.data) {
-        const 말 = r.값 && r.값.errors ? r.값.errors.map((e) => e.message).join(' / ') : (r.값 && r.값.message) || '';
-        throw new Error(`한꺼번에 못 읽었다 — GitHub 응답 ${r.상태}${말 ? ': ' + 말 : ''}`);
-      }
-      const 저장소들 = r.값.data.viewer.repositories;
-      for (const n of 저장소들.nodes) {
-        if (!n.claude) continue;
-        const 시각들 = (n.defaultBranchRef && n.defaultBranchRef.target) || {};
-        const 문서 = {};
-        for (const [k, p] of Object.entries(세문서)) {
-          const b = n[k];
-          if (!b) { 문서[p] = null; continue; }
-          const 시각 = 시각들[k] && 시각들[k].nodes[0] ? 시각들[k].nodes[0].committedDate : null;
-          if (b.isTruncated || typeof b.text !== 'string') {
-            기록.log(`[GitHub 통로] ${n.name}/${p} 글이 잘려 와 따로 다시 받는다`);
-            const f = await 파일읽기(n.name, p);
-            문서[p] = f ? { 글: f.글, 시각 } : null;
-          } else 문서[p] = { 글: b.text, 시각 };
-        }
-        결과.push({ 이름: n.name, 문서 });
-      }
-      다음 = 저장소들.pageInfo.hasNextPage ? 저장소들.pageInfo.endCursor : null;
-      쪽++;
-    } while (다음);
-    기록.log(`[GitHub 통로] SUCCESS 한꺼번에읽기 — 질문 ${쪽}번 · 부서·프로젝트 ${결과.length}곳`);
     return 결과;
   }
 
@@ -155,5 +115,5 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     throw new Error(`세 번 다시 적었는데도 그사이 파일이 계속 바뀌었다: ${저장소}/${경로}`);
   }
 
-  return { 파일읽기, 파일목록, 부서저장소들, 마지막커밋, 고쳐쓰기, 한꺼번에읽기 };
+  return { 파일읽기, 파일목록, 부서저장소들, 마지막커밋, 고쳐쓰기 };
 }

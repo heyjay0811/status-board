@@ -21,7 +21,7 @@ const 곳차례 = Object.keys(곳이름);
 const 열쇠읽기 = () => { try { return localStorage.getItem(열쇠자리) || ''; } catch (e) { 기록('열쇠를 못 읽었다: ' + e.message); return ''; } };
 const 열쇠쓰기 = (v) => { try { v ? localStorage.setItem(열쇠자리, v) : localStorage.removeItem(열쇠자리); } catch (e) { 기록('ERROR 열쇠를 못 적었다: ' + e.message); } };
 
-const 상태 = { 통로: null, 곳들: [], 의회: null, 화면: '홈', 작업곳: 'management', 열린: null, 쓰는줄: null, 알림: '', 읽는중: false, 원문: {} };
+const 상태 = { 통로: null, 곳들: [], 의회: null, 화면: '홈', 작업곳: 'management', 열린: null, 쓰는줄: null, 알림: '', 원문: {} };
 const 본문 = document.getElementById('본문');
 const 덮개 = document.getElementById('박스덮개');
 const 박스 = document.getElementById('박스');
@@ -30,36 +30,72 @@ const 오늘 = () => new Date().toLocaleDateString('sv-SE');   // 그 기기의 
 const 때 = (iso) => iso ? new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
 
 // ── 읽기 ─────────────────────────────────────────────────────────────── //
-// 읽을 곳과 파일을 먼저 다 정하고, 전부 도착한 뒤에 그린다 — 먼저 온 것만 보고 「없다」를 그리지 않는다(개발 규칙 제2조 ②). //
-async function 모두읽기() {
-  상태.읽는중 = true; 그리기();
-  기록('START 모두읽기');
+// [관리부 작업 422] 제1조 ①④⑦([확정 19]) — 지난번 받은 문서(글·지문·마지막 커밋 시각)를 이 기기에 두고, 열 때 그것으로 //
+//   먼저 그린 뒤 문서마다 지문으로 GitHub에 동시에 물어 바뀐 문서만 새로 받아 바꿔 끼운다. 어느 저장소에 어떤 문서가 //
+//   있는지는 처음 열 때(기기에 없을 때)와 「↻ 다시 읽기」 때만 저장소를 훑어 정한다. //
+// ★한 문서를 못 읽으면 그 문서는 기기에 둔 글로 두고 그 곳에 오류를 보인다 — 「없다」로 덮지 않는다(개발 규칙 제2조 ①). //
+// ★기기 저장이 막혀 있으면(사생활 창 같은 곳) 매번 처음처럼 다 받는다 — 화면은 그대로 뜬다. //
+const 문서자리 = 'sb.문서', 곳목록자리 = 'sb.곳목록', 맞춘때자리 = 'sb.맞춘때';
+const 세문서 = ['docs/work.md', 'docs/설계실.md', 의회자리.경로];
+const 저장읽기 = (자리, 없으면) => { try { const v = localStorage.getItem(자리); return v ? JSON.parse(v) : 없으면; } catch (e) { 기록(`ERROR 기기 저장(${자리})을 못 읽었다: ${e.message}`); return 없으면; } };
+const 저장쓰기 = (자리, 값) => { try { localStorage.setItem(자리, JSON.stringify(값)); } catch (e) { 기록(`ERROR 기기 저장(${자리})을 못 적었다 — 다음에 열 때 다시 다 받는다: ${e.message}`); } };
+let 문서 = 저장읽기(문서자리, {});        // { '저장소/경로': { 글, 지문, 시각 } } //
+let 곳목록 = 저장읽기(곳목록자리, null);  // [{ 이름, 문서들: [경로] }] //
+상태.맞춘때 = 저장읽기(맞춘때자리, null);
+상태.맞추는중 = false;
+상태.문서오류 = {};
+
+// 기기에 둔 문서로 화면 상태를 짓는다 — 못 적은 답은 그 위에 얹어 찍힌 모양을 지킨다 //
+function 저장에서짓기() {
+  상태.원문 = {}; 상태.의회 = null;
+  상태.곳들 = [...(곳목록 || [])].sort((a, b) => (곳차례.indexOf(a.이름) + 1 || 99) - (곳차례.indexOf(b.이름) + 1 || 99)).map((곳) => {
+    const 결과 = { 저장소: 곳.이름, 이름: 곳이름[곳.이름] || 곳.이름, 작업: null, 설계안: null, 오류: [], 시각: {} };
+    for (const 경로 of 곳.문서들) {
+      const k = 곳.이름 + '/' + 경로, d = 문서[k];
+      if (상태.문서오류[k]) 결과.오류.push(`${경로}: ${상태.문서오류[k]}`);
+      if (!d) continue;
+      상태.원문[k] = d.글; 결과.시각[경로] = d.시각;
+      if (경로 === 'docs/work.md') 결과.작업 = 항목분해(d.글, { 종류: '작업' });
+      else if (경로 === 'docs/설계실.md') 결과.설계안 = 법안읽기(d.글, '설계실.md');
+      else if (경로 === 의회자리.경로 && 곳.이름 === 의회자리.저장소) 상태.의회 = 법안읽기(d.글, 'assembly.md');
+    }
+    return 결과;
+  });
+  남은답얹기();
+}
+
+async function 모두읽기(훑기 = false) {
+  기록(`START 모두읽기${훑기 ? ' — 저장소도 다시 훑는다' : ''}`);
+  if (곳목록 && !훑기) 저장에서짓기();   // 지난번 받은 글로 먼저 그린다 //
+  상태.맞추는중 = true; 그리기();
   try {
-    const 곳들 = (await 상태.통로.부서저장소들())
-      .sort((a, b) => (곳차례.indexOf(a.이름) + 1 || 99) - (곳차례.indexOf(b.이름) + 1 || 99));
-    상태.곳들 = await Promise.all(곳들.map(async (곳) => {
-      const 결과 = { 저장소: 곳.이름, 이름: 곳이름[곳.이름] || 곳.이름, 작업: null, 설계안: null, 오류: [], 시각: {} };
-      const 읽기 = async (경로, 넣기) => {
-        if (!곳.목록.includes(경로)) return;   // 그 곳에 그 문서가 없다 — 정상 //
-        try {
-          const [f, 시각] = await Promise.all([상태.통로.파일읽기(곳.이름, 경로), 상태.통로.마지막커밋(곳.이름, 경로)]);
-          if (f) { 상태.원문[곳.이름 + '/' + 경로] = f.글; 넣기(f.글); 결과.시각[경로] = 시각; }
-        } catch (e) { 결과.오류.push(`${경로}: ${e.message}`); 기록(`ERROR ${곳.이름}/${경로} 못 읽음 — ${e.message}`); }
-      };
-      await Promise.all([
-        읽기('docs/work.md', (글) => { 결과.작업 = 항목분해(글, { 종류: '작업' }); }),
-        읽기('docs/설계실.md', (글) => { 결과.설계안 = 법안읽기(글, '설계실.md'); }),
-        곳.이름 === 의회자리.저장소 ? 읽기(의회자리.경로, (글) => { 상태.의회 = 법안읽기(글, 'assembly.md'); }) : null,
-      ]);
-      return 결과;
-    }));
+    if (!곳목록 || 훑기) {
+      const 곳들 = await 상태.통로.부서저장소들();
+      곳목록 = 곳들.map((곳) => ({ 이름: 곳.이름, 문서들: 세문서.filter((p) => 곳.목록.includes(p) && (p !== 의회자리.경로 || 곳.이름 === 의회자리.저장소)) }));
+      저장쓰기(곳목록자리, 곳목록);
+    }
+    let 받음 = 0, 안바뀜 = 0;
+    const 오류 = {}, 남길것 = {};
+    await Promise.all(곳목록.flatMap((곳) => 곳.문서들.map(async (경로) => {
+      const k = 곳.이름 + '/' + 경로, 옛 = 문서[k];
+      try {
+        const f = await 상태.통로.파일읽기(곳.이름, 경로, 옛 && 옛.지문);
+        if (!f) return;                                   // 파일이 정말 없어졌다 //
+        if (f.안바뀜) { 남길것[k] = 옛; 안바뀜++; return; }
+        남길것[k] = { 글: f.글, 지문: f.지문, 시각: await 상태.통로.마지막커밋(곳.이름, 경로) }; 받음++;
+      } catch (e) { 오류[k] = e.message; if (옛) 남길것[k] = 옛; 기록(`ERROR ${k} 못 읽음 — ${e.message}`); }
+    })));
+    문서 = 남길것; 저장쓰기(문서자리, 문서);
+    상태.문서오류 = 오류;
+    상태.맞춘때 = new Date().toISOString(); 저장쓰기(맞춘때자리, 상태.맞춘때);
     상태.알림 = '';
-    기록(`SUCCESS 모두읽기 — ${상태.곳들.length}곳 · 법안 ${상태.의회 ? 상태.의회.length : '못 읽음'}`);
+    저장에서짓기();
+    기록(`SUCCESS 모두읽기 — ${상태.곳들.length}곳 · 새로 받음 ${받음} · 안 바뀜 ${안바뀜} · 못 읽음 ${Object.keys(오류).length} · 법안 ${상태.의회 ? 상태.의회.length : '못 읽음'}`);
   } catch (e) {
-    상태.알림 = '못 읽었다: ' + e.message;
+    상태.알림 = '원본과 못 맞췄다 — 지난번 내용을 보이는 중: ' + e.message;
     기록('ERROR 모두읽기 — ' + e.message);
   }
-  상태.읽는중 = false; 그리기();
+  상태.맞추는중 = false; 그리기();
 }
 
 // 답을 적은 파일의 글로 그 자리를 갈아 끼운다 — 답을 찍은 뒤 「찍었다」와 「문서에 있다」가 갈라지지 않게. //
@@ -76,7 +112,7 @@ function 그리기() {
   for (const a of document.querySelectorAll('[data-탭]')) a.classList.toggle('지금', a.dataset.탭 === 상태.화면);
   document.getElementById('시각').textContent = 시각글();
   if (!상태.통로) return 열쇠그리기();
-  if (상태.읽는중 && !상태.곳들.length) { 본문.innerHTML = '<p class="안내">GitHub에서 읽는 중…</p>'; return; }
+  if (상태.맞추는중 && !상태.곳들.length) { 본문.innerHTML = '<p class="안내">GitHub에서 처음 읽는 중…</p>'; return; }
   const 알림 = 적는줄알림() + (상태.알림 ? `<p class="오류">${막기(상태.알림)}</p>` : '') + (코드알림 ? `<p class="오류">${막기(코드알림)}</p>` : '');
   const 글 = { 홈: 홈글, 의회: 의회글, 설계실: 설계실글, 작업: 작업글 }[상태.화면]();
   // 넓은 화면은 박스를 열지 않아도 두 칸으로 세우고, 빈 박스 칸에 안내를 보인다(제12조 ③) //
@@ -92,7 +128,10 @@ function 시각글() {
   const 곳들 = 상태.화면 === '작업' ? 상태.곳들.filter((x) => x.저장소 === 상태.작업곳) : 상태.곳들;
   const 경로 = { 의회: [의회자리.경로], 설계실: ['docs/설계실.md'], 작업: ['docs/work.md'], 홈: [의회자리.경로, 'docs/설계실.md', 'docs/work.md'] }[상태.화면];
   const 모두 = 곳들.flatMap((x) => 경로.map((p) => x.시각[p]).filter(Boolean)).sort();
-  return 모두.length ? '마지막 커밋 ' + 때(모두[모두.length - 1]) : '';
+  const 커밋 = 모두.length ? '마지막 커밋 ' + 때(모두[모두.length - 1]) : '';
+  // 원본과 언제 맞춘 내용인지(제1조 ⑦) //
+  const 맞춤 = 상태.맞추는중 ? '원본과 맞추는 중…' : 상태.맞춘때 ? '원본과 맞춤 ' + 때(상태.맞춘때) : '';
+  return [커밋, 맞춤].filter(Boolean).join(' · ');
 }
 
 function 열쇠그리기() {
@@ -304,7 +343,11 @@ async function 줄돌리기() {
     try {
       const r = await 상태.통로.고쳐쓰기(a.저장소, a.경로, 바꾸기만들기(a), a.메시지);
       적을답 = 적을답.filter((x) => x.번호 !== a.번호); 적을답쓰기(적을답);
-      if (r.바뀜) { 상태.원문[a.저장소 + '/' + a.경로] = r.글; 얹어그리기(a.저장소, a.경로, r.글, r.시각); }
+      if (r.바뀜) {
+        상태.원문[a.저장소 + '/' + a.경로] = r.글; 얹어그리기(a.저장소, a.경로, r.글, r.시각);
+        // 기기에 둔 문서도 적은 글로 바꾼다 — 지문은 읽기 응답에만 오므로 비워 두고, 다음에 열 때 이 문서만 새로 받는다 //
+        문서[a.저장소 + '/' + a.경로] = { 글: r.글, 지문: null, 시각: r.시각 }; 저장쓰기(문서자리, 문서);
+      }
       기록(`SUCCESS 적기 — ${r.커밋 ? r.커밋.slice(0, 7) : '바뀐 것 없음'}`);
     } catch (e) {
       a.못적음 = e.message; 적을답쓰기(적을답);
@@ -318,14 +361,19 @@ async function 줄돌리기() {
 }
 const 다적을때까지 = () => (적을답.some((x) => !x.못적음) || 적는중) ? new Promise((r) => { 다비면.push(r); 줄돌리기(); }) : Promise.resolve();
 
-// 켤 때 — 받은 글 위에 남은 답을 얹어 보이고 마저 적는다 //
-function 남은답이어적기() {
-  if (!적을답.length) return;
-  기록(`켤 때 남은 적을 답 ${적을답.length}건 — 마저 적는다`);
+// 받은 글 위에 아직 못 적은 답을 얹는다 — 기기에 둔 글로 그릴 때도, 새로 받은 글로 그릴 때도 찍힌 모양을 지킨다 //
+function 남은답얹기() {
   for (const k of new Set(적을답.map((a) => a.저장소 + '/' + a.경로))) {
     const [저장소, ...p] = k.split('/');
     if (상태.원문[k] !== undefined) 얹어그리기(저장소, p.join('/'), 상태.원문[k], null);
   }
+}
+
+// 켤 때 — 남은 답을 마저 적는다(제10조 ⑥) //
+function 남은답이어적기() {
+  if (!적을답.length) return;
+  기록(`켤 때 남은 적을 답 ${적을답.length}건 — 마저 적는다`);
+  남은답얹기();
   적을답.forEach((a) => { a.못적음 = ''; });
   그리기();
   줄돌리기();
@@ -381,8 +429,11 @@ async function 화면코드새로받기() {
     const 말 = '화면 코드 일부를 새로 못 받아 옛 사본으로 띄웠다: ' + 못받음.map((u) => u.replace(location.origin, '')).join(' · ');
     try { sessionStorage.setItem(코드알림열쇠, 말); } catch (e) { 기록('ERROR 알림을 못 남겼다: ' + e.message); }
   }
+  // 다시 뜬 화면이 저장소도 다시 훑게 표시해 둔다(제1조 ④) //
+  try { sessionStorage.setItem(훑기열쇠, '1'); } catch (e) { 기록('ERROR 저장소 다시 훑기 표시를 못 남겼다 — 문서만 지문으로 맞춘다: ' + e.message); }
   location.reload();
 }
+const 훑기열쇠 = '상황판:저장소다시훑기';
 // 다시 읽기는 적는 중인 답을 다 적은 뒤에 화면을 다시 띄운다 — 띄우면서 적는 일을 끊지 않게(제10조 ⑥) //
 document.getElementById('다시읽기').addEventListener('click', async () => {
   if (적을답.some((a) => !a.못적음) || 적는중) { 상태.알림 = '적는 중인 답을 다 적은 뒤 다시 띄운다'; 그리기(); await 다적을때까지(); }
@@ -397,6 +448,9 @@ function 시작() {
   const 열쇠 = 열쇠읽기();
   if (!열쇠) { 상태.통로 = null; 그리기(); return; }
   상태.통로 = 통로만들기({ 열쇠, API, 기록: { log: 기록 } });
-  모두읽기().then(남은답이어적기);
+  let 훑기 = false;
+  try { 훑기 = sessionStorage.getItem(훑기열쇠) === '1'; sessionStorage.removeItem(훑기열쇠); }
+  catch (e) { 기록('ERROR 저장소 다시 훑기 표시를 못 읽었다: ' + e.message); }
+  모두읽기(훑기).then(남은답이어적기);
 }
 시작();

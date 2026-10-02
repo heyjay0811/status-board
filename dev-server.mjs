@@ -42,9 +42,14 @@ const 지문 = (글) => createHash('sha1').update(글).digest('hex');
 const 모든파일 = (폴더) => readdirSync(폴더, { withFileTypes: true }).flatMap((d) => d.isDirectory() ? 모든파일(join(폴더, d.name)) : [join(폴더, d.name)]);
 const 종류표 = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
+// 문서 읽기를 일부러 늦춘다(밀리초) — 화면이 기기에 둔 글로 먼저 그리는지 잰다(bp-상황판 제1조 ⑦) //
+const 읽기지연 = Number(process.env.SB_READ_DELAY_MS || 0);
 const 서버 = createServer((요청, 응답) => {
   const u = new URL(요청.url, 'http://127.0.0.1');
   const 경로 = decodeURIComponent(u.pathname);
+  if (읽기지연 && 요청.method === 'GET' && 경로.startsWith('/api/') && !요청.늦췄음) {
+    요청.늦췄음 = true; setTimeout(() => 서버.emit('request', 요청, 응답), 읽기지연); return;
+  }
   const 답 = (상태, 값) => { 응답.writeHead(상태, { 'Content-Type': 'application/json; charset=utf-8' }); 응답.end(JSON.stringify(값)); };
   try {
     if (!경로.startsWith('/api/')) {   // 화면 파일 — 이 저장소 폴더 안만 내준다 //
@@ -71,7 +76,12 @@ const 서버 = createServer((요청, 응답) => {
       if (요청.method === 'GET') {
         if (!existsSync(파일)) return 답(404, { message: 'Not Found' });
         const 글 = readFileSync(파일);
-        return 답(200, { type: 'file', content: 글.toString('base64'), sha: 지문(글) });
+        // 진짜 GitHub처럼 지문(ETag)을 붙이고, 「이 지문과 같으면 보내지 마라」면 304만 보낸다(bp-상황판 제1조 ⑦) //
+        const etag = `"${지문(글)}"`;
+        if (요청.headers['if-none-match'] === etag) { 응답.writeHead(304, { ETag: etag }); 응답.end(); return; }
+        응답.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', ETag: etag });
+        응답.end(JSON.stringify({ type: 'file', content: 글.toString('base64'), sha: 지문(글) }));
+        return;
       }
       if (요청.method === 'PUT') {
         let 몸 = ''; 요청.on('data', (c) => { 몸 += c; });
