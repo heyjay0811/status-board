@@ -4,6 +4,7 @@
 //   보아도 진짜 문서는 바뀌지 않는다. 쓰기는 GitHub처럼 sha(파일 지문)가 맞을 때만 받는다 — 옛 글 위에 쓰면 409. //
 // 쓰는 법: `node dev-server.mjs` → 브라우저로 http://127.0.0.1:8787/?api=/api 를 연다. 열쇠는 아무 영문 글자나 넣는다. //
 //   「wrong」으로 시작하는 열쇠를 넣으면 읽기는 되고 쓰기만 401로 막힌다 — 못 적었을 때의 화면을 잰다. //
+//   `SB_READ_FAIL=작업-448`처럼 주면 경로에 그 조각이 든 파일은 목록에는 있고 읽기만 500이다 — 못 읽었을 때의 화면을 잰다. //
 // 한계: 저장소 여덟 곳의 docs 문서 몇백 개까지만 생각했다 · 바꿀 때: 시험할 문서가 수천 개가 되면 필요한 파일만 복사한다. //
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, copyFileSync } from 'node:fs';
@@ -27,7 +28,7 @@ function 진짜저장소들() {
   return 표;
 }
 
-// 사본 만들기 — docs/ 바로 아래 .md와 `.claude` 폴더가 있다는 표시만 옮긴다. //
+// 사본 만들기 — docs/ 바로 아래 .md, 작업 파일(docs/작업/*.md — bp-상황판 제13조), `.claude` 폴더가 있다는 표시만 옮긴다. //
 const 뿌리 = mkdtempSync(join(tmpdir(), 'sb-dev-'));
 const 저장소들 = 진짜저장소들();
 for (const [이름, 폴더] of Object.entries(저장소들)) {
@@ -35,6 +36,11 @@ for (const [이름, 폴더] of Object.entries(저장소들)) {
   mkdirSync(join(사본, 'docs'), { recursive: true });
   const docs = join(폴더, 'docs');
   if (existsSync(docs)) for (const f of readdirSync(docs)) if (f.endsWith('.md')) copyFileSync(join(docs, f), join(사본, 'docs', f));
+  const 작업 = join(docs, '작업');
+  if (existsSync(작업)) {
+    mkdirSync(join(사본, 'docs', '작업'), { recursive: true });
+    for (const f of readdirSync(작업)) if (f.endsWith('.md')) copyFileSync(join(작업, f), join(사본, 'docs', '작업', f));
+  }
   if (existsSync(join(폴더, '.claude'))) { mkdirSync(join(사본, '.claude'), { recursive: true }); writeFileSync(join(사본, '.claude', 'settings.json'), '{}'); }
 }
 console.log(`[시험 서버] 사본을 만들었다 — ${Object.keys(저장소들).length}곳 → ${뿌리}`);
@@ -45,6 +51,9 @@ const 종류표 = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascrip
 
 // 문서 읽기를 일부러 늦춘다(밀리초) — 화면이 기기에 둔 글로 먼저 그리는지 잰다(bp-상황판 제1조 ⑦) //
 const 읽기지연 = Number(process.env.SB_READ_DELAY_MS || 0);
+// 일부러 못 읽게 할 파일 — 경로에 이 조각(쉼표로 여럿)이 든 파일은 파일 목록에는 두고 읽기(GET)만 500을 돌려준다. //
+//   파일 목록에 있는데 못 읽을 때 화면이 무엇을 못 읽었는지 알리는지 잰다(bp-상황판 제13조 ② · 제7조 ②). //
+const 못읽을것 = String(process.env.SB_READ_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
 const 서버 = createServer((요청, 응답) => {
   const u = new URL(요청.url, 'http://127.0.0.1');
   const 경로 = decodeURIComponent(u.pathname);
@@ -76,6 +85,10 @@ const 서버 = createServer((요청, 응답) => {
       if (relative(join(뿌리, m[1]), 파일).startsWith('..')) return 답(400, { message: '경로가 이상하다' });
       if (요청.method === 'GET') {
         if (!existsSync(파일)) return 답(404, { message: 'Not Found' });
+        if (못읽을것.some((조각) => `${m[1]}/${m[2]}`.includes(조각))) {
+          console.log(`[시험 서버] 일부러 못 읽게 했다(500) — ${m[1]}/${m[2]}`);
+          return 답(500, { message: '시험 서버가 일부러 못 읽게 한 파일' });
+        }
         const 글 = readFileSync(파일);
         // 진짜 GitHub처럼 지문(ETag)을 붙이고, 「이 지문과 같으면 보내지 마라」면 304만 보낸다(bp-상황판 제1조 ⑦) //
         const etag = `"${지문(글)}"`;

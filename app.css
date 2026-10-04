@@ -119,6 +119,13 @@ mark { background: var(--노랑); color: inherit; }
 .답단추:disabled, .작은단추:disabled, .달기:disabled { opacity: .55; cursor: progress; }
 
 .본문글 { white-space: pre-wrap; overflow-wrap: anywhere; max-width: var(--박스폭); font-size: 14px; }
+/* 작업 파일 — 소제목을 파일 차례대로, 진행 현황은 지시 목록(제13조 ③④⑤) */
+.작업절 { font-size: 15px; margin: 18px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--선); }
+.지시목록 { display: flex; flex-direction: column; }
+.지시줄 { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px dashed var(--선); padding: 8px 2px; cursor: pointer; font-size: 14px; }
+.지시줄:hover .지시글, .지시줄.펼침 .지시글 { color: var(--강조); }
+.지시글 { flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.보고글 { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; margin: 4px 0 8px 22px; padding: 8px 10px; border-left: 3px solid var(--강조); background: var(--칸); border-radius: 0 6px 6px 0; }
 .열쇠칸 { max-width: 30em; }
 .열쇠칸 input { width: 100%; font: inherit; padding: 8px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); color: var(--글); }
 
