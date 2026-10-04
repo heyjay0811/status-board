@@ -1,5 +1,5 @@
 // GitHub 통로 `github.mjs`의 시험 — 메모리 안의 가짜 GitHub으로 돌리고, `--live`를 붙이면 공개 저장소를 실제로 읽는다. //
-// 따르는 설계: 관리부 설계 `bp-상황판` 제1조 ④⑤ · 제7조 ② · 제10조 ③④⑤ //
+// 따르는 설계: 관리부 설계 `bp-상황판` 제1조 ④⑤ · 제7조 ② · 제10조 ③⑤⑥⑧ //
 import { 통로만들기 } from './github.mjs';
 import { 표시붙인글 } from './doc-mark.mjs';
 
@@ -57,21 +57,40 @@ console.log('[github 시험] START');
   확인('`.claude` 폴더가 있는 저장소만 부서·프로젝트로 센다', 부서.map((x) => x.이름).join() === 'management');
   확인('마지막 커밋 시각을 돌려준다', (await 통로.마지막커밋('management', 'docs/assembly.md')) === '2026-09-29T11:22:33Z');
 }
-{ // 쓰기 — 커밋 하나, 그사이 바뀌면 다시 읽어 그 위에 적는다 //
+{ // 쓰기 — 한 번 읽고 한 번 적어 커밋 하나 //
   const 저장소들 = { management: { 'docs/assembly.md': { 글: 의회, sha: 's0' } } };
-  const 끼어들기 = { 남은: 1, 바꾸기: (글) => 글 + '\n## 다른 기기가 올린 법안 | #규칙 | 소속: 전역 규칙\n' };
-  const g = 가짜GitHub(저장소들, { 끼어들기 }); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
+  const g = 가짜GitHub(저장소들); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
   const r = await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 표시붙인글(글, '어떤 법안', '신설', '2026-09-29'), '상황판: 어떤 법안에 신설');
   const 끝글 = 저장소들.management['docs/assembly.md'].글;
-  확인('그사이 다른 곳에서 바뀌어도 찍은 답이 적힌다', 끝글.includes('> 📌 🆕 **신설** | 2026-09-29'));
-  확인('그사이 바뀐 글이 사라지지 않는다', 끝글.includes('다른 기기가 올린 법안'));
+  확인('찍은 답이 적힌다', 끝글.includes('> 📌 🆕 **신설** | 2026-09-29'));
   확인('커밋 하나를 돌려준다', r.바뀜 && r.커밋.startsWith('c0ffee'));
+  확인('한 번 읽고 한 번 적는다(GET 하나 · PUT 하나)', g.기록.filter((x) => x.startsWith('GET')).length === 1 && g.기록.filter((x) => x.startsWith('PUT')).length === 1, g.기록.join(' / '));
   // ★적은 뒤 파일을 다시 읽지 않아도 되게, 커밋 응답에서 적은 글·새 지문·커밋 시각을 돌려준다(찍기가 GitHub을 두 번만 오간다) //
   확인('적은 글을 돌려준다(다시 읽은 글과 같다)', r.글 === 끝글, r.글 === undefined ? '글 없음' : '글 다름');
   확인('새 파일 지문과 커밋 시각을 돌려준다', r.sha === 저장소들.management['docs/assembly.md'].sha && r.시각 === '2026-09-30T01:02:03Z', `sha ${r.sha} · 시각 ${r.시각}`);
-  확인('두 번째 시도에서 다시 읽었다(GET이 두 번)', g.기록.filter((x) => x.startsWith('GET')).length === 2, g.기록.join(' / '));
   const 같음 = await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 글, '바뀐 것 없음');
   확인('바뀐 것이 없으면 커밋하지 않는다', 같음.바뀜 === false && 같음.커밋 === null);
+}
+{ // 쓰기 — 그사이 바뀌면 다시 읽지 않고 오류를 던진다(제10조 ⑧) //
+  const 저장소들 = { management: { 'docs/assembly.md': { 글: 의회, sha: 's0' } } };
+  const 끼어들기 = { 남은: 1, 바꾸기: (글) => 글 + '\n## 다른 기기가 올린 법안 | #규칙 | 소속: 전역 규칙\n' };
+  const g = 가짜GitHub(저장소들, { 끼어들기 }); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
+  let 던짐 = '';
+  try { await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 표시붙인글(글, '어떤 법안', '신설', '2026-09-29'), '상황판: 어떤 법안에 신설'); }
+  catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
+  const 끝글 = 저장소들.management['docs/assembly.md'].글;
+  확인('그사이 바뀌면 까닭(그사이 바뀜 · 409)을 담은 오류를 던진다', 던짐.includes('그사이') && 던짐.includes('409'), 던짐);
+  확인('그사이 바뀌면 다시 읽지 않는다(GET 한 번 · PUT 한 번)', g.기록.filter((x) => x.startsWith('GET')).length === 1 && g.기록.filter((x) => x.startsWith('PUT')).length === 1, g.기록.join(' / '));
+  확인('그사이 바뀌면 GitHub의 글은 그사이 바뀐 그대로다(찍은 답이 안 적힌다)', 끝글.includes('다른 기기가 올린 법안') && !끝글.includes('**신설**'));
+}
+{ // 쓰기 — 열쇠가 쓰기를 못 하면(401) 다시 해 보지 않고 응답 번호를 담아 던진다 //
+  const 저장소들 = { management: { 'docs/assembly.md': { 글: 의회, sha: 's0' } } };
+  const g = 가짜GitHub(저장소들);
+  const 막는fetch = async (주소, 옵션) => (옵션.method === 'PUT' ? { status: 401, text: async () => JSON.stringify({ message: 'Bad credentials' }) } : g.fetch(주소, 옵션));
+  const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: 막는fetch, 기록: 조용히 });
+  let 던짐 = ''; try { await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 글 + 'x', '시험'); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
+  확인('쓰기가 401로 막히면 응답 번호와 까닭을 담아 던진다', 던짐.includes('401') && 던짐.includes('Bad credentials'), 던짐);
+  확인('쓰기가 401로 막히면 글이 그대로다', 저장소들.management['docs/assembly.md'].글 === 의회);
 }
 { // 저장소 파일 목록은 한꺼번에 받는다 — 한 곳씩 차례로 받으면 17곳에 5.7초, 한꺼번에 0.6초(2026-09-30 실제 GitHub) //
   const 저장소들 = {}; for (let i = 0; i < 5; i++) 저장소들['곳' + i] = { '.claude/x': { 글: '', sha: 'a' } };

@@ -114,6 +114,10 @@ mark { background: var(--노랑); color: inherit; }
 .답단추 { min-width: 96px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--선); background: var(--칸); cursor: pointer; font-weight: 600; }
 .답단추.찍힘 { border-color: var(--강조); color: var(--강조); outline: 2px solid var(--강조); }
 .알림 { font-size: 12px; color: var(--흐린); flex-basis: 100%; text-align: center; }
+/* GitHub에 못 적었다는 한 줄 — 답 단추 아래에 오류 모양으로(제10조 ⑧) */
+.알림.오류 { color: var(--빨강글); background: var(--빨강); padding: 6px 10px; border-radius: 6px; text-align: left; }
+/* 적는 동안 막은 단추(제10조 ⑥) */
+.답단추:disabled, .작은단추:disabled, .달기:disabled { opacity: .55; cursor: progress; }
 
 .본문글 { white-space: pre-wrap; overflow-wrap: anywhere; max-width: var(--박스폭); font-size: 14px; }
 .열쇠칸 { max-width: 30em; }

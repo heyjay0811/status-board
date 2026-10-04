@@ -2,7 +2,8 @@
 //
 // 무엇을 하나: 진짜 저장소의 `docs/` 문서만 임시 폴더로 복사해 그 사본을 GitHub처럼 내준다. 화면에서 답을 찍어 //
 //   보아도 진짜 문서는 바뀌지 않는다. 쓰기는 GitHub처럼 sha(파일 지문)가 맞을 때만 받는다 — 옛 글 위에 쓰면 409. //
-// 쓰는 법: `node dev-server.mjs` → 브라우저로 http://127.0.0.1:8787/?api=/api 를 연다. 열쇠는 아무 글자나 넣는다. //
+// 쓰는 법: `node dev-server.mjs` → 브라우저로 http://127.0.0.1:8787/?api=/api 를 연다. 열쇠는 아무 영문 글자나 넣는다. //
+//   「wrong」으로 시작하는 열쇠를 넣으면 읽기는 되고 쓰기만 401로 막힌다 — 못 적었을 때의 화면을 잰다. //
 // 한계: 저장소 여덟 곳의 docs 문서 몇백 개까지만 생각했다 · 바꿀 때: 시험할 문서가 수천 개가 되면 필요한 파일만 복사한다. //
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, copyFileSync } from 'node:fs';
@@ -84,6 +85,14 @@ const 서버 = createServer((요청, 응답) => {
         return;
       }
       if (요청.method === 'PUT') {
+        // 쓰기만 막히는 열쇠 — 열쇠가 「wrong」으로 시작하면 쓰기(PUT)에만 401을 돌려준다(bp-상황판 제10조 ⑧ 시험). //
+        //   이 서버는 어떤 열쇠든 읽기를 받아 주고, 진짜 GitHub에서 열쇠를 틀리면 읽기부터 막혀 찍을 화면이 안 서기 때문이다. //
+        // ★표지는 영문이다 — 브라우저와 Node의 fetch는 요청 머리(Authorization)에 한글이 들면 요청을 보내지 않고 던진다. //
+        if (/^Bearer wrong/.test(요청.headers.authorization || '')) {
+          요청.resume();
+          console.log(`[시험 서버] 쓰기 거절(401, 쓰기만 막히는 열쇠) — ${m[1]}/${m[2]}`);
+          return setTimeout(() => 답(401, { message: 'Bad credentials' }), 쓰기지연);
+        }
         let 몸 = ''; 요청.on('data', (c) => { 몸 += c; });
         요청.on('end', () => setTimeout(() => {
           try {
