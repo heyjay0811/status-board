@@ -15,21 +15,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
-<!-- 상황판 — 의회·설계실·작업 화면(관리부 설계 `bp-상황판` 제2조 ⑧⑨⑩ · 제6조 · 제7조 ③ · 제10조 · 제11조). -->
-<!-- PC 앱과 모바일 앱이 이 한 벌을 쓴다. 문서는 GitHub에서 열쇠로 읽고, 찍은 답은 GitHub에 커밋으로 적는다. -->
+<!-- 상황판 — 부서·프로젝트 줄이 늘어선 목록 화면 하나(관리부 설계 `bp-상황판` 제2조 · 제6조 · 제7조 ③ · 제10조 · 제11조). -->
+<!-- 탭과 홈은 두지 않는다 — 무엇을 보든 그 곳 줄을 펼쳐 그 자리에서 본다(제2조 ①). -->
+<!-- PC 앱과 모바일 앱이 이 한 벌을 쓴다(PC 앱은 관리부 tools/progress.mjs가 같은 머리 줄·본문을 세우고 app.mjs를 싣는다). -->
+<!-- 문서는 GitHub에서 열쇠로 읽고, 찍은 답은 GitHub에 커밋으로 적는다. -->
 <header class="머리">
   <strong class="앱이름">상황판</strong>
-  <nav class="윗탭" aria-label="화면">
-    <a href="#홈" data-탭="홈">홈</a><a href="#의회" data-탭="의회">의회</a><a href="#설계실" data-탭="설계실">설계실</a><a href="#작업" data-탭="작업">작업</a>
-  </nav>
   <span class="시각" id="시각"></span>
   <button type="button" class="작은단추" id="다시읽기" title="GitHub에서 다시 읽는다">↻</button>
 </header>
 <main id="본문"><p class="안내">읽는 중…</p></main>
 <div class="박스덮개" id="박스덮개" hidden><section class="박스" id="박스" aria-live="polite"></section></div>
-<nav class="아래탭" aria-label="화면">
-  <a href="#홈" data-탭="홈">홈</a><a href="#의회" data-탭="의회">의회</a><a href="#설계실" data-탭="설계실">설계실</a><a href="#작업" data-탭="작업">작업</a>
-</nav>
 <script type="module" src="app.mjs"></script>
 </body>
 </html>

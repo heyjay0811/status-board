@@ -1,9 +1,13 @@
-// 상황판 화면 — 홈·의회·설계실·작업 네 화면. PC 앱과 모바일 앱이 이 한 벌을 쓴다(관리부 설계 `bp-상황판` 제7조 ③). //
+// 상황판 화면 — 부서·프로젝트 줄이 늘어선 목록 화면 하나. PC 앱과 모바일 앱이 이 한 벌을 쓴다(관리부 설계 `bp-상황판` 제7조 ③). //
 //
-// 따르는 설계: 제1조 ①④⑤(GitHub에서 읽고, 읽을 문서는 파일 목록으로, `.claude` 있는 저장소만) · 제2조 ⑧⑨⑩(홈의 수 · 작업 목록) · //
-//   제4조 ②③④⑤⑥(답 둘 · 다시 눌러 거두기 · 코멘트) · 제6조 ①②③⑤⑥⑬⑰(박스) · 제7조 ②(못 읽으면 멈추고 알린다) · //
-//   제10조 ③⑤⑥⑦⑧⑨⑩(찍은 답을 바로 커밋 · 마지막 커밋 시각 · 한 번 적고 못 적으면 오류 한 줄) · 제11조(설계실 화면). //
-// 작업 화면은 읽기만 한다(사용자 결정 2026-09-29 「진행해」 — 폰 작업 화면은 지금 설계 제2조 ⑩ 그대로). //
+// 따르는 설계: 제1조 ①④⑤(GitHub에서 읽고, 읽을 문서는 파일 목록으로, `.claude` 있는 저장소만) · //
+//   제2조 ①⑧⑨⑩⑪⑫⑬⑭(줄 목록 하나 · 관리부 아래 의회·설계실 줄 · 줄 옆 수 · 펼친 줄 안의 작업·법안·설계안 목록 · //
+//   열 때 가장 최근 줄 하나 펼침 · 펼침 단추 · 고정 단추) · 제4조 ②③④⑤⑥(답 둘 · 다시 눌러 거두기 · 코멘트) · //
+//   제6조 ①②③⑤⑥⑬⑰(박스) · 제7조 ②(못 읽으면 멈추고 알린다) · 제10조 ③⑤⑥⑦⑧⑨⑩(찍은 답을 바로 커밋 · 머리 줄의 //
+//   마지막 커밋 시각 · 한 번 적고 못 적으면 오류 한 줄) · 제11조(설계실 줄) · 제12조 ③(넓은 화면 두 칸). //
+// 작업 목록은 읽기만 한다(사용자 결정 2026-09-29 「진행해」 — 설계 제2조 ⑩). //
+// ★PC 앱은 이 파일을 모듈로 그대로 싣고(관리부 tools/progress.mjs), `window.상황판PC`로 두 가지만 맡는다 — 부서·프로젝트 줄을 //
+//   펼친 자리의 차트·환경 목록 칸(곳칸)과 「↻ 다시 읽기」(다시읽기). 모바일 앱에는 이 이름이 없어 그 칸이 서지 않는다(제2조 ②⑩). //
 import { 통로만들기 } from './github.mjs';
 import { 표시붙인글, 코멘트붙인글 } from './doc-mark.mjs';
 import { 법안읽기, 고를답, 곳이름 } from './bill-parse.mjs';
@@ -21,7 +25,10 @@ const 곳차례 = Object.keys(곳이름);
 const 열쇠읽기 = () => { try { return localStorage.getItem(열쇠자리) || ''; } catch (e) { 기록('열쇠를 못 읽었다: ' + e.message); return ''; } };
 const 열쇠쓰기 = (v) => { try { v ? localStorage.setItem(열쇠자리, v) : localStorage.removeItem(열쇠자리); } catch (e) { 기록('ERROR 열쇠를 못 적었다: ' + e.message); } };
 
-const 상태 = { 통로: null, 곳들: [], 의회: null, 화면: '홈', 작업곳: 'management', 열린: null, 쓰는줄: null, 알림: '', 원문: {} };
+// 고른줄·고정 — 펼침(줄) = (줄 = 고른 줄) OR 고정(줄)(제2조 ⑬⑭). 고정은 기기에 저장하지 않는다. //
+// 줄손댐 — 사용자가 줄을 펼치거나 고정했는가. 손대기 전에만 GitHub과 맞춘 뒤 가장 최근 줄을 다시 고른다(제2조 ⑫). //
+const 상태 = { 통로: null, 곳들: [], 의회: null, 열린: null, 쓰는줄: null, 알림: '', 원문: {}, 고른줄: null, 고정: new Set(), 줄손댐: false };
+const PC = window.상황판PC || null;   // PC 앱이 심는 것 — 위 머리 주석 //
 const 본문 = document.getElementById('본문');
 const 덮개 = document.getElementById('박스덮개');
 const 박스 = document.getElementById('박스');
@@ -65,7 +72,7 @@ function 저장에서짓기() {
 
 async function 모두읽기(훑기 = false) {
   기록(`START 모두읽기${훑기 ? ' — 저장소도 다시 훑는다' : ''}`);
-  if (곳목록 && !훑기) 저장에서짓기();   // 지난번 받은 글로 먼저 그린다 //
+  if (곳목록 && !훑기) { 저장에서짓기(); 줄고르기(); }   // 지난번 받은 글로 먼저 그린다 //
   상태.맞추는중 = true; 그리기();
   try {
     if (!곳목록 || 훑기) {
@@ -88,7 +95,7 @@ async function 모두읽기(훑기 = false) {
     상태.문서오류 = 오류;
     상태.맞춘때 = new Date().toISOString(); 저장쓰기(맞춘때자리, 상태.맞춘때);
     상태.알림 = '';
-    저장에서짓기();
+    저장에서짓기(); 줄고르기();
     기록(`SUCCESS 모두읽기 — ${상태.곳들.length}곳 · 새로 받음 ${받음} · 안 바뀜 ${안바뀜} · 못 읽음 ${Object.keys(오류).length} · 법안 ${상태.의회 ? 상태.의회.length : '못 읽음'}`);
   } catch (e) {
     상태.알림 = '원본과 못 맞췄다 — 지난번 내용을 보이는 중: ' + e.message;
@@ -108,25 +115,28 @@ function 적은글넣기(저장소, 경로, 글, 시각) {
 
 // ── 그리기 ─────────────────────────────────────────────────────────────── //
 function 그리기() {
-  for (const a of document.querySelectorAll('[data-탭]')) a.classList.toggle('지금', a.dataset.탭 === 상태.화면);
   document.getElementById('시각').textContent = 시각글();
+  머리높이맞추기();
   if (!상태.통로) return 열쇠그리기();
   if (상태.맞추는중 && !상태.곳들.length) { 본문.innerHTML = '<p class="안내">GitHub에서 처음 읽는 중…</p>'; return; }
+  // 박스를 연 줄이 접혔으면 박스도 닫는다 — 박스는 그 줄의 박스 칸에 선다 //
+  if (상태.열린 && !펼친가(열린줄키(상태.열린.열쇠))) { 상태.열린 = null; 상태.쓰는줄 = null; }
   const 알림 = (상태.알림 ? `<p class="오류">${막기(상태.알림)}</p>` : '') + (코드알림 ? `<p class="오류">${막기(코드알림)}</p>` : '');
-  const 글 = { 홈: 홈글, 의회: 의회글, 설계실: 설계실글, 작업: 작업글 }[상태.화면]();
-  // 넓은 화면은 박스를 열지 않아도 두 칸으로 세우고, 빈 박스 칸에 안내를 보인다(제12조 ③) //
-  const 두칸 = 상태.화면 !== '홈' && (!!상태.열린 || 넓은화면.matches);
-  본문.className = 두칸 ? '두칸' : '';
-  const 빈칸 = 두칸 && !상태.열린 ? '<div class="빈칸">목록에서 하나를 고르면 여기 열린다</div>' : '';
-  본문.innerHTML = 알림 + `<div class="목록칸">${글}</div>` + 빈칸;
+  본문.innerHTML = 알림 + 줄목록글();
+  곳칸채우기();
   박스그리기();
 }
 
-// 화면 맨 위의 마지막 커밋 시각 — 지금 화면이 읽은 문서 가운데 가장 늦은 것(제10조 ⑤) //
+// 좁은 화면의 박스는 머리 줄 아래부터 덮는다 — 머리 줄의 시각과 「적는 중」이 박스를 연 채로도 보이게(제10조 ⑦) //
+const 머리줄 = document.querySelector('.머리');
+function 머리높이맞추기() {
+  if (머리줄) document.documentElement.style.setProperty('--머리높이', 머리줄.offsetHeight + 'px');
+}
+addEventListener('resize', 머리높이맞추기);
+
+// 화면 맨 위의 마지막 커밋 시각 — 읽어 온 문서 가운데 가장 늦은 것(제10조 ⑤) //
 function 시각글() {
-  const 곳들 = 상태.화면 === '작업' ? 상태.곳들.filter((x) => x.저장소 === 상태.작업곳) : 상태.곳들;
-  const 경로 = { 의회: [의회자리.경로], 설계실: ['docs/설계실.md'], 작업: ['docs/work.md'], 홈: [의회자리.경로, 'docs/설계실.md', 'docs/work.md'] }[상태.화면];
-  const 모두 = 곳들.flatMap((x) => 경로.map((p) => x.시각[p]).filter(Boolean)).sort();
+  const 모두 = 상태.곳들.flatMap((x) => Object.values(x.시각).filter(Boolean)).sort((a, b) => Date.parse(a) - Date.parse(b));
   const 커밋 = 모두.length ? '마지막 커밋 ' + 때(모두[모두.length - 1]) : '';
   // 원본과 언제 맞춘 내용인지(제1조 ⑦) //
   const 맞춤 = 상태.맞추는중 ? '원본과 맞추는 중…' : 상태.맞춘때 ? '원본과 맞춤 ' + 때(상태.맞춘때) : '';
@@ -135,7 +145,6 @@ function 시각글() {
 }
 
 function 열쇠그리기() {
-  본문.className = '';
   본문.innerHTML = `<div class="열쇠칸"><h2>GitHub 열쇠 넣기</h2>
     <p class="안내">문서가 든 저장소는 비공개라, 사용자의 GitHub 열쇠(토큰)로 읽고 씁니다. 열쇠는 이 기기 안에만 둡니다(설계 제10조 ②).</p>
     <p class="안내">GitHub → Settings → Developer settings → Fine-grained tokens에서 만들고, 부서·프로젝트 저장소를 고른 뒤 권한은 <b>Contents: Read and write</b> 하나만 줍니다. 상황판은 의회 파일(<code>docs/assembly.md</code>)과 설계실 파일(<code>docs/설계실.md</code>)에만 적습니다.</p>
@@ -143,35 +152,95 @@ function 열쇠그리기() {
     <p><button type="button" class="답단추" data-일="열쇠저장">넣고 읽기</button></p></div>`;
 }
 
-const 곳수 = (곳) => {
-  const 법안 = (상태.의회 || []).filter((b) => (b.곳 || 'management') === 곳.저장소).length;
-  return { 작업: 곳.작업 ? 곳.작업.length : null, 법안, 설계안: 곳.설계안 ? 곳.설계안.length : 0 };
+// ── 줄 목록 ─────────────────────────────────────────────────────────── //
+// 제2조 ①⑧⑨ — 부서·프로젝트마다 한 줄, 관리부 줄 바로 아래에 의회 줄·설계실 줄. 줄 옆에는 수 하나만 — //
+//   곳 줄은 작업 목록의 작업 수, 의회 줄은 법안 수, 설계실 줄은 설계안 수. 맨 위에 수를 모은 칸은 두지 않는다. //
+// ★줄시각(제2조 ⑫) — 곳 줄은 그 곳 docs/work.md, 의회 줄은 관리부 docs/assembly.md, 설계실 줄은 관리부 //
+//   docs/설계실.md의 마지막 커밋 시각이다. //
+// ★설계실 줄의 수는 설계실 줄에 보이는 설계안 전부다 — 설계안은 아직 곳마다의 설계실 파일에서 읽는다(관리부 파일 하나로 //
+//   읽는 것은 [작업 448]의 일이다). //
+function 줄들() {
+  const 관리부곳 = 상태.곳들.find((x) => x.저장소 === 의회자리.저장소);
+  const 관리부시각 = (경로) => (관리부곳 && 관리부곳.시각[경로]) || null;
+  const 줄 = [];
+  for (const 곳 of 상태.곳들) {
+    줄.push({ 키: '곳:' + 곳.저장소, 종류: '곳', 곳, 이름: 곳.이름, 수: 곳.작업 ? 곳.작업.length : null, 수뜻: '작업 목록의 작업 수', 시각: 곳.시각['docs/work.md'] || null });
+    if (곳 !== 관리부곳) continue;
+    줄.push({ 키: '의회', 종류: '의회', 이름: '의회', 딸림: true, 수: 상태.의회 ? 상태.의회.length : null, 수뜻: '의회에 올라온 법안 수', 시각: 관리부시각(의회자리.경로) });
+    줄.push({ 키: '설계실', 종류: '설계실', 이름: '설계실', 딸림: true, 수: 상태.곳들.reduce((n, x) => n + (x.설계안 || []).length, 0), 수뜻: '설계실에 올라온 설계안 수', 시각: 관리부시각('docs/설계실.md') });
+  }
+  return 줄;
+}
+const 펼친가 = (키) => 키 === 상태.고른줄 || 상태.고정.has(키);
+// 박스를 연 항목이 어느 줄에 딸렸나 — 박스는 그 줄의 박스 칸에 선다 //
+const 열린줄키 = (열쇠) => {
+  const [종류, a] = String(열쇠).split(':');
+  return 종류 === '작업' ? '곳:' + a : 종류;
 };
 
-// 홈 — 맨 위에 찍을 법안·찍을 설계안·진행 중 작업, 그 아래 곳마다 한 줄(제2조 ⑧⑨) //
-function 홈글() {
-  const 찍을법안 = (상태.의회 || []).filter((b) => !b.표시).length;
-  const 찍을설계안 = 상태.곳들.reduce((n, 곳) => n + (곳.설계안 || []).filter((b) => !b.표시).length, 0);
-  const 진행 = 상태.곳들.reduce((n, 곳) => n + (곳.작업 || []).filter((w) => /^▶/.test(w.제목)).length, 0);
-  const 줄들 = 상태.곳들.map((곳) => {
-    const 수 = 곳수(곳);
-    return `<button type="button" class="곳줄" data-곳="${막기(곳.저장소)}"><span class="이름">${막기(곳.이름)}</span>
-      <span class="수">작업 <b>${수.작업 == null ? '–' : 수.작업}</b> · 법안 <b>${수.법안}</b> · 설계안 <b>${수.설계안}</b></span>
-      ${곳.오류.length ? '<span class="딱지 판단" title="' + 막기(곳.오류.join(' / ')) + '">못 읽은 문서 있음</span>' : ''}</button>`;
-  }).join('');
-  return `<div class="요약"><div><b>${상태.의회 ? 찍을법안 : '–'}</b><span>찍을 법안</span></div>
-    <div><b>${찍을설계안}</b><span>찍을 설계안</span></div><div><b>${진행}</b><span>진행 중 작업</span></div></div><div class="곳들">${줄들}</div>`;
+// 제2조 ⑫ — 줄시각이 가장 늦은 줄 하나. 시각이 하나도 없으면 맨 윗줄이다. //
+function 가장최근줄() {
+  let 고름 = null;
+  for (const x of 줄들()) if (!고름 || (x.시각 && (!고름.시각 || Date.parse(x.시각) > Date.parse(고름.시각)))) 고름 = x;
+  return 고름 ? 고름.키 : null;
+}
+// 열 때(그리고 GitHub과 맞춘 뒤, 사용자가 아직 줄을 안 만졌으면) 고정을 모두 풀고 가장 최근 줄 하나만 펼친다(제2조 ⑫) //
+function 줄고르기() {
+  if (상태.줄손댐) return;
+  상태.고정.clear();
+  상태.고른줄 = 가장최근줄();
+  기록(`가장 최근에 바뀐 줄을 펼친다 — ${상태.고른줄 || '(줄 없음)'}`);
+}
+
+function 줄목록글() {
+  return '<div class="줄목록">' + 줄들().map((x) => {
+    const 펼침 = 펼친가(x.키), 고정 = 상태.고정.has(x.키);
+    const 오류 = x.곳 && x.곳.오류.length ? `<span class="딱지 판단" title="${막기(x.곳.오류.join(' / '))}">못 읽은 문서 있음</span>` : '';
+    const 머리 = `<div class="곳줄${x.딸림 ? ' 딸림' : ''}${펼침 ? ' 펼침' : ''}">`
+      + `<button type="button" class="펼침단추" data-펼침="${막기(x.키)}" aria-expanded="${펼침}" title="${펼침 ? '누르면 접는다' : '누르면 펼친다'}">`
+      + `<span class="화살표">${펼침 ? '▾' : '▸'}</span><span class="이름">${막기(x.이름)}</span>`
+      + `<span class="수" title="${막기(x.수뜻)}">${x.수 == null ? '–' : x.수}</span>${오류}</button>`
+      + `<button type="button" class="고정단추${고정 ? ' 켜짐' : ''}" data-고정="${막기(x.키)}" aria-pressed="${고정}" title="${고정 ? '누르면 고정을 푼다' : '고정하면 다른 줄을 골라도 접히지 않는다'}">📌</button></div>`;
+    return `<section class="줄묶음" data-줄="${막기(x.키)}">${머리}${펼침 ? `<div class="줄몸">${줄몸글(x)}</div>` : ''}</section>`;
+  }).join('') + '</div>';
+}
+// 펼친 줄 안 — 의회 줄은 법안 목록, 설계실 줄은 설계안 목록, 곳 줄은 작업 목록(제2조 ⑩⑪). //
+//   PC 앱이면 곳 줄의 작업 목록 위에 차트, 아래에 환경 목록 칸을 둔다(제2조 ②). //
+function 줄몸글(x) {
+  if (x.종류 === '의회') return 두칸글(x.키, 의회글());
+  if (x.종류 === '설계실') return 두칸글(x.키, 설계실글());
+  const PC칸 = (자리) => (PC ? `<div class="곳칸" data-곳칸="${막기(x.곳.저장소)}" data-자리="${자리}"></div>` : '');
+  return PC칸('위') + 두칸글(x.키, 작업글(x.곳)) + PC칸('아래');
+}
+// 넓은 화면은 목록 칸 옆에 박스 칸을 세우고, 박스를 안 열었으면 안내를 보인다(제12조 ③). 좁은 화면은 박스 칸을 숨긴다. //
+const 두칸글 = (키, 목록) => `<div class="두칸" data-박스자리="${막기(키)}"><div class="목록칸">${목록}</div>`
+  + '<div class="박스칸"><div class="빈칸">목록에서 하나를 고르면 여기 열린다</div></div></div>';
+
+// PC 앱의 차트·환경 목록 칸 — 곳마다 한 번만 받아 두고, 다시 그릴 때마다 그 칸을 새 자리로 옮긴다. //
+//   다시 그릴 때마다 새로 받으면 환경 목록을 매번 다시 읽고, 펼쳐 둔 항목이 접힌다. //
+const PC칸들 = new Map();   // 저장소 → { 위, 아래 } //
+function 곳칸채우기() {
+  if (!PC) return;
+  for (const 칸 of 본문.querySelectorAll('[data-곳칸]')) {
+    const 저장소 = 칸.dataset.곳칸;
+    if (!PC칸들.has(저장소)) {
+      try { PC칸들.set(저장소, PC.곳칸(저장소)); 기록(`PC 앱 칸을 받았다 — ${저장소}`); }
+      catch (e) { 기록(`ERROR PC 앱 칸을 못 받았다 — ${저장소}: ${e.message}`); PC칸들.set(저장소, null); }
+    }
+    const 받음 = PC칸들.get(저장소);
+    if (!받음) { 칸.innerHTML = `<p class="오류">PC 앱이 이 곳의 차트·환경 칸을 못 만들었다 — ${막기(저장소)}</p>`; continue; }
+    칸.appendChild(받음[칸.dataset.자리]);
+  }
 }
 
 // 목록 줄 하나 — 의회 법안과 설계안이 같이 쓴다 //
 function 항목줄(it, 열쇠) {
   const 수 = Object.keys(it.코멘트).length;
   const 열림 = 상태.열린 && 상태.열린.열쇠 === 열쇠 ? ' 열림' : '';
-  return `<button type="button" class="줄${열림}" data-열기="${막기(열쇠)}"><span class="딱지 ${막기(it.종류)}">${막기(종류글(it.종류))}</span>
+  return `<button type="button" class="줄${열림}" data-열기="${막기(열쇠)}"><span class="딱지 ${막기(it.종류)}">${막기(it.종류)}</span>
     <span class="제목">${꾸미기(it.이름)}<br><span class="자리딱지">${꾸미기(it.문서)}</span></span>
     ${it.표시 ? `<span class="딱지 답">${막기(it.표시)}</span>` : ''}${수 ? `<span class="딱지">코멘트 ${수}</span>` : ''}</button>`;
 }
-const 종류글 = (종류) => (종류 === '항추가' ? '항 추가' : 종류);
 
 // 의회 — 들어갈 자리의 주인과 종류로 크게 묶고, 문서마다 작게 묶는다(제6조 ⑮) //
 function 의회글() {
@@ -191,16 +260,13 @@ function 설계실글() {
   }).join('');
 }
 
-// 작업 — 곳을 고르고, 결정할 사항 있음 → 진행 중(▶) → 나머지 차례로 상태 줄과 함께 보인다(제2조 ⑩). 읽기만 한다. //
-function 작업글() {
-  const 곳 = 상태.곳들.find((x) => x.저장소 === 상태.작업곳) || 상태.곳들[0];
-  const 고르개 = '<div class="고르개">' + 상태.곳들.map((x) =>
-    `<button type="button" data-작업곳="${막기(x.저장소)}" class="${x === 곳 ? '지금' : ''}">${막기(x.이름)}</button>`).join('') + '</div>';
-  if (!곳) return 고르개;
-  if (!곳.작업) return 고르개 + `<p class="${곳.오류.length ? '오류' : '안내'}">${곳.오류.length ? '작업 목록을 못 읽었다 — ' + 막기(곳.오류.join(' / ')) : '이 곳에는 작업 목록이 없다'}</p>`;
+// 작업 — 펼친 곳 줄 안에서, 결정할 사항 있음 → 진행 중(▶) → 나머지 차례로 상태 줄과 함께 보인다(제2조 ⑩). 읽기만 한다. //
+function 작업글(곳) {
+  if (!곳.작업) return `<p class="${곳.오류.length ? '오류' : '안내'}">${곳.오류.length ? '작업 목록을 못 읽었다 — ' + 막기(곳.오류.join(' / ')) : '이 곳에는 작업 목록이 없다'}</p>`;
+  if (!곳.작업.length) return '<p class="안내">작업 목록이 비어 있다.</p>';
   const 차례 = (w) => (w.상태줄 && w.상태줄.결정필요 ? 0 : /^▶/.test(w.제목) ? 1 : 2);
   const 목록 = 곳.작업.map((w, i) => ({ ...w, 번째: i, 상태줄: 상태줄읽기(w.본문) })).sort((a, b) => 차례(a) - 차례(b));
-  return 고르개 + 목록.map((w) => {
+  return 목록.map((w) => {
     const s = w.상태줄;
     const 열쇠 = `작업:${곳.저장소}:${w.번째}`;
     return `<button type="button" class="줄${상태.열린 && 상태.열린.열쇠 === 열쇠 ? ' 열림' : ''}" data-열기="${막기(열쇠)}"><span class="제목">
@@ -225,11 +291,11 @@ function 열린것() {
 function 박스그리기() {
   const 열린 = 열린것();
   덮개.hidden = !열린;
-  // 넓은 화면은 목록 옆 칸, 좁은 화면은 화면 전체(제6조 ①) //
-  const 옆칸 = 넓은화면.matches && !!열린;
-  덮개.classList.toggle('옆칸', 옆칸);
-  if (옆칸 && 덮개.parentNode !== 본문) 본문.appendChild(덮개);
-  if (!옆칸 && 덮개.parentNode !== document.body) document.body.appendChild(덮개);
+  // 넓은 화면은 그 항목이 딸린 줄의 박스 칸(목록 옆), 좁은 화면은 머리 줄 아래 화면 전체(제6조 ① · 제12조 ③) //
+  const 자리 = 넓은화면.matches && 열린 ? 본문.querySelector(`.두칸[data-박스자리="${CSS.escape(열린줄키(상태.열린.열쇠))}"] > .박스칸`) : null;
+  덮개.classList.toggle('옆칸', !!자리);
+  if (자리 && 덮개.parentNode !== 자리) 자리.replaceChildren(덮개);
+  if (!자리 && 덮개.parentNode !== document.body) document.body.appendChild(덮개);
   if (!열린) { 박스.innerHTML = ''; return; }
   if (열린.종류 === '작업') {
     const w = 열린.항목;
@@ -285,7 +351,7 @@ function 박스그리기() {
   const 안내 = 상태.알림 || (it.표시 ? `${it.표시} 찍힘 — 같은 단추를 다시 누르면 거둔다` : '') + (수 ? ` · 코멘트 ${수}개 — ${it.표시 ? '찍은 답에 딸려 AI가 반영한다' : '답 없이 단 코멘트는 물음이다'}` : '');
   // GitHub에 못 적었으면 답 단추 아래에 그 까닭 한 줄을 오류 모양으로 보인다(제10조 ⑧) //
   const 알림칸 = 못적음[법] ? `<span class="알림 오류">GitHub에 못 적었다 — ${막기(못적음[법])}</span>` : `<span class="알림">${막기(안내)}</span>`;
-  박스.innerHTML = `<div class="박스머리"><span class="딱지 ${막기(it.종류)}">${막기(종류글(it.종류))}</span><h2>${꾸미기(it.이름)}</h2>
+  박스.innerHTML = `<div class="박스머리"><span class="딱지 ${막기(it.종류)}">${막기(it.종류)}</span><h2>${꾸미기(it.이름)}</h2>
       <button type="button" class="작은단추 닫기" data-일="닫기">✕</button></div>
     <div class="자리딱지">${열린.종류 === '설계실' ? '확정하면 들어갈 자리' : '찍으면 글이 갈 자리'}: ${꾸미기(it.소속)}</div>
     <div><button type="button" class="달기" data-달기="제목"${막힘('코멘트:제목')}>제목에 코멘트</button></div>${줄('제목')}
@@ -376,9 +442,8 @@ document.addEventListener('click', (e) => {
   const t = e.target.closest('button, a');
   if (!t) return;
   const d = t.dataset;
-  if (d.탭) { return; }   // 주소 # 바뀜으로 처리한다 //
-  if (d.곳) { 상태.작업곳 = d.곳; location.hash = '#작업'; return; }
-  if (d.작업곳) { 상태.작업곳 = d.작업곳; 상태.열린 = null; 그리기(); return; }
+  if (d.펼침) { 줄펼치기(d.펼침); return; }
+  if (d.고정) { 줄고정(d.고정); return; }
   if (d.열기) { 상태.열린 = { 열쇠: d.열기 }; 상태.쓰는줄 = null; 상태.알림 = ''; 그리기(); if (!넓은화면.matches) 덮개.scrollTop = 0; return; }
   if (d.일 === '닫기') { 상태.열린 = null; 상태.쓰는줄 = null; 그리기(); return; }
   if (d.일 === '그만') {
@@ -427,13 +492,44 @@ async function 화면코드새로받기() {
 const 훑기열쇠 = '상황판:저장소다시훑기';
 // 다시 읽기는 적는 일을 기다리지 않고 바로 화면을 다시 띄운다 — 적던 답은 안 적혔을 수 있고, 다시 뜬 화면은 //
 //   GitHub에 적힌 대로 보인다. 못 적었다는 오류 한 줄도 화면 기억에만 있어 함께 걷힌다(제10조 ⑨⑩). //
-document.getElementById('다시읽기').addEventListener('click', () => { 화면코드새로받기(); });
-window.addEventListener('hashchange', () => { 상태.화면 = 화면이름(); 상태.열린 = null; 상태.쓰는줄 = null; 그리기(); });
+// ★PC 앱에서는 PC 앱이 다시 읽기를 맡는다 — 차트가 쓰는 git 값과 환경 목록까지 화면을 통째로 다시 만들어야 하기 때문이다. //
+//   어느 쪽이든 다시 뜬 화면은 처음 연 것과 같다(제2조 ⑫ — 고정이 풀리고 가장 최근 줄 하나만 펼친다). //
+document.getElementById('다시읽기').addEventListener('click', () => {
+  if (PC && PC.다시읽기) {
+    try { sessionStorage.setItem(훑기열쇠, '1'); } catch (e) { 기록('ERROR 저장소 다시 훑기 표시를 못 남겼다 — 문서만 지문으로 맞춘다: ' + e.message); }
+    기록('다시 읽기 — PC 앱이 화면을 통째로 다시 만든다');
+    PC.다시읽기();
+    return;
+  }
+  화면코드새로받기();
+});
 넓은화면.addEventListener('change', 그리기);
-function 화면이름() { const h = decodeURIComponent(location.hash.slice(1)); return ['홈', '의회', '설계실', '작업'].includes(h) ? h : '홈'; }
+
+// 제2조 ⑬ — 접힌 줄의 펼침 단추를 누르면 그 줄을 펼치고 고정하지 않은 다른 줄은 접는다. 펼친 줄을 다시 누르면 접는다. //
+// ★고정한 줄을 펼침 단추로 접으면 고정도 푼다 — 펼침(줄) = (줄 = 고른 줄) OR 고정(줄)이라, 고정이 남으면 접히지 않는다. //
+function 줄펼치기(키) {
+  상태.줄손댐 = true;
+  if (펼친가(키)) {
+    if (상태.고른줄 === 키) 상태.고른줄 = null;
+    상태.고정.delete(키);
+    기록(`줄을 접는다 — ${키}`);
+  } else {
+    상태.고른줄 = 키;
+    기록(`줄을 펼친다 — ${키} (고정한 줄 ${상태.고정.size}개는 그대로)`);
+  }
+  그리기();
+  const 줄 = 본문.querySelector(`[data-줄="${CSS.escape(키)}"]`);
+  if (줄 && 펼친가(키)) 줄.scrollIntoView({ block: 'nearest' });
+}
+// 제2조 ⑭ — 고정한 줄은 다른 줄을 골라도 접히지 않는다. 여러 줄을 고정할 수 있다. //
+function 줄고정(키) {
+  상태.줄손댐 = true;
+  if (상태.고정.has(키)) { 상태.고정.delete(키); 기록(`고정을 푼다 — ${키}`); }
+  else { 상태.고정.add(키); 기록(`고정한다 — ${키} (고정 ${상태.고정.size}줄)`); }
+  그리기();
+}
 
 function 시작() {
-  상태.화면 = 화면이름();
   const 열쇠 = 열쇠읽기();
   if (!열쇠) { 상태.통로 = null; 그리기(); return; }
   상태.통로 = 통로만들기({ 열쇠, API, 기록: { log: 기록 } });

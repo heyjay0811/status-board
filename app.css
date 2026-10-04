@@ -11,37 +11,40 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--바탕); color: var(--글); }
-body { font: 15px/1.6 var(--글꼴); padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+body { font: 15px/1.6 var(--글꼴); padding-bottom: env(safe-area-inset-bottom); }
 code { font: 0.92em ui-monospace, Consolas, monospace; background: var(--칸); padding: 0 3px; border-radius: 4px; }
 button { font: inherit; color: inherit; }
 a { color: var(--강조); }
 
-/* 머리 줄 — PC 앱 진행 현황처럼 앱 이름과 둥근 이동 단추(제12조 ②) */
-.머리 { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--바탕); border-bottom: 1px solid var(--선); }
+/* 머리 줄 — PC 앱 진행 현황처럼 앱 이름을 둔다(제12조 ②). 탭은 두지 않는다(제2조 ①).
+   좁은 화면에서 시각이 길면 다음 줄로 내린다 — 박스는 이 줄 아래부터 덮어 「적는 중」이 늘 보인다(제10조 ⑦). */
+.머리 { position: sticky; top: 0; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 16px; background: var(--바탕); border-bottom: 1px solid var(--선); }
 .앱이름 { font-size: 18px; font-weight: 700; }
-.시각 { margin-left: auto; font-size: 12px; color: var(--흐린); }
+.시각 { order: 3; flex-basis: 100%; font-size: 12px; color: var(--흐린); }
+#다시읽기 { margin-left: auto; }
 .작은단추 { border: 1px solid var(--선); background: var(--칸); color: var(--글); border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
 .작은단추:hover { border-color: var(--강조); color: var(--강조); }
-.윗탭 { display: none; gap: 8px; }
-.윗탭 a { font-size: 13px; text-decoration: none; padding: 6px 13px; border-radius: 9px; border: 1px solid var(--선); color: var(--흐린); background: var(--칸); }
-.윗탭 a.지금 { color: var(--글); border-color: var(--강조); background: color-mix(in srgb, var(--강조) 12%, transparent); }
-.아래탭 a { text-decoration: none; color: var(--흐린); padding: 6px 10px; border-radius: 9px; }
-.아래탭 a.지금 { color: var(--강조); font-weight: 700; background: color-mix(in srgb, var(--강조) 12%, transparent); }
-.아래탭 { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; justify-content: space-around; background: var(--바탕); border-top: 1px solid var(--선); padding: 4px 0 calc(4px + env(safe-area-inset-bottom)); }
 
 #본문 { padding: 12px 16px; max-width: 1400px; margin: 0 auto; }
 .안내 { color: var(--흐린); }
 .오류 { color: var(--빨강글); background: var(--빨강); padding: 8px 10px; border-radius: 6px; }
 
-/* 홈 — 찍을 것과 도는 작업을 맨 위에(제2조 ⑧) */
-.요약 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-.요약 div { background: var(--칸); border: 1px solid var(--선); border-radius: 8px; padding: 10px; text-align: center; }
-.요약 b { display: block; font-size: 22px; }
-.요약 span { font-size: 12px; color: var(--흐린); }
-.곳줄 { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--선); padding: 12px 4px; cursor: pointer; }
-.곳줄 .이름 { flex: 1; font-weight: 600; }
-.수 { font-size: 12px; color: var(--흐린); white-space: nowrap; }
-.수 b { color: var(--글); }
+/* 줄 목록 — 부서·프로젝트마다 한 줄, 관리부 아래에 의회·설계실 줄(제2조 ①). 줄 옆에 수 하나(⑧).
+   펼침 단추로 펼치고 접으며, 고정 단추로 다른 줄을 골라도 접히지 않게 한다(⑬⑭). */
+.줄묶음 { border-bottom: 1px solid var(--선); scroll-margin-top: calc(var(--머리높이, 52px) + 4px); }
+.곳줄 { display: flex; align-items: center; gap: 4px; }
+.곳줄.딸림 { padding-left: 22px; }
+.펼침단추 { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; text-align: left; background: none; border: 0; padding: 12px 4px; cursor: pointer; }
+.펼침단추:hover .이름 { color: var(--강조); }
+.화살표 { width: 1em; color: var(--흐린); }
+.곳줄 .이름 { font-weight: 600; overflow-wrap: anywhere; }
+.곳줄.펼침 .이름 { color: var(--강조); }
+.수 { min-width: 1.8em; padding: 0 7px; border-radius: 10px; background: var(--칸); border: 1px solid var(--선); font-size: 12px; text-align: center; color: var(--글); white-space: nowrap; }
+.고정단추 { flex: none; border: 1px solid transparent; background: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; filter: grayscale(1); opacity: .45; }
+.고정단추:hover { opacity: .8; border-color: var(--선); }
+.고정단추.켜짐 { filter: none; opacity: 1; border-color: var(--강조); background: color-mix(in srgb, var(--강조) 12%, transparent); }
+.줄몸 { padding: 0 0 14px; }
+.곳줄.딸림 + .줄몸 { padding-left: 22px; }
 
 /* 목록 */
 details.자리큰 > summary { font-weight: 700; padding: 8px 0; cursor: pointer; }
@@ -56,19 +59,15 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .딱지.판단 { border-color: #bf8700; color: #bf8700; font-weight: 700; }
 .딱지.신설, .딱지.추가 { border-color: var(--새것); color: var(--새것); font-weight: 600; }
 .딱지.변경 { border-color: var(--바꿈); color: var(--바꿈); font-weight: 600; }
-.딱지.항추가 { border-color: var(--더함); color: var(--더함); font-weight: 600; }
 .딱지.삭제, .딱지.제거 { border-color: var(--지움); color: var(--지움); font-weight: 600; }
 .자리딱지 { display: inline-block; font-size: 12px; margin-top: 4px; padding: 0 7px; border-radius: 6px; font-weight: 600;
   color: var(--강조); background: color-mix(in srgb, var(--강조) 12%, transparent); border: 1px solid color-mix(in srgb, var(--강조) 40%, transparent); }
 .박스 > .자리딱지 { display: block; }
 .상태줄 { display: block; font-size: 13px; color: var(--흐린); margin-top: 2px; }
 .상태줄 b { color: var(--글); font-weight: 600; }
-.고르개 { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.고르개 button { border: 1px solid var(--선); background: var(--칸); border-radius: 14px; padding: 2px 10px; cursor: pointer; }
-.고르개 button.지금 { border-color: var(--강조); color: var(--강조); font-weight: 700; }
 
-/* 박스 — 좁은 화면은 화면 전체, 넓은 화면은 목록 옆 칸(제6조 ①). 한 줄 한글 마흔 자 남짓(제6조 ②). */
-.박스덮개 { position: fixed; inset: 0; z-index: 10; background: var(--바탕); overflow: auto; }
+/* 박스 — 좁은 화면은 머리 줄 아래 화면 전체, 넓은 화면은 그 줄의 목록 옆 칸(제6조 ① · 제10조 ⑦). 한 줄 한글 마흔 자 남짓(제6조 ②). */
+.박스덮개 { position: fixed; top: var(--머리높이, 0px); left: 0; right: 0; bottom: 0; z-index: 10; background: var(--바탕); overflow: auto; }
 .박스 { max-width: var(--박스폭); margin: 0 auto; padding: 12px 16px 96px; }
 .박스머리 { display: flex; gap: 8px; align-items: flex-start; }
 .박스머리 h2 { flex: 1; font-size: 16px; margin: 0; overflow-wrap: anywhere; }
@@ -123,20 +122,19 @@ mark { background: var(--노랑); color: inherit; }
 .열쇠칸 { max-width: 30em; }
 .열쇠칸 input { width: 100%; font: inherit; padding: 8px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); color: var(--글); }
 
-.빈칸 { display: none; }
+/* 펼친 줄 안의 목록 칸과 박스 칸 — 좁은 화면은 박스 칸을 숨기고 박스를 머리 줄 아래 화면 전체로 연다(제6조 ①) */
+.박스칸 { display: none; }
 
-/* 넓은 화면 — 목록 칸과 박스 칸이 화면 폭을 나눠 채우고, 홈은 곳 줄을 격자로 벌린다(제12조 ③) */
+/* 넓은 화면 — 펼친 줄 안에서 목록 칸과 박스 칸이 화면 폭을 나눠 채운다(제12조 ③).
+   박스 칸은 목록 길이만큼 늘어나고, 그 안의 박스와 안내는 머리 줄 아래에 붙어 따라 내려온다. */
 @media (min-width: 900px) {
-  body { padding-bottom: 0; }
-  .아래탭 { display: none; }
-  .윗탭 { display: flex; }
+  .시각 { order: 0; flex-basis: auto; margin-left: auto; }
+  #다시읽기 { margin-left: 0; }
   #본문 { max-width: none; padding: 14px 24px; }
-  #본문.두칸 { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; align-items: start; }
-  .빈칸 { display: flex; align-items: center; justify-content: center; position: sticky; top: 62px; min-height: 240px; border: 1px dashed var(--선); border-radius: 8px; color: var(--흐린); font-size: 14px; }
-  .곳들 { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
-  .곳들 .곳줄 { border: 1px solid var(--선); border-radius: 8px; background: var(--칸); padding: 12px; }
-  .곳들 .곳줄:hover { border-color: var(--강조); }
-  .박스덮개.옆칸 { position: sticky; top: 52px; inset: auto; z-index: 1; max-height: calc(100vh - 60px); border-left: 1px solid var(--선); }
+  .두칸 { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; }
+  .박스칸 { display: block; min-width: 0; }
+  .빈칸 { display: flex; align-items: center; justify-content: center; position: sticky; top: calc(var(--머리높이, 52px) + 10px); min-height: 240px; border: 1px dashed var(--선); border-radius: 8px; color: var(--흐린); font-size: 14px; }
+  .박스덮개.옆칸 { position: sticky; top: calc(var(--머리높이, 52px) + 4px); inset: auto; z-index: 1; max-height: calc(100vh - var(--머리높이, 52px) - 12px); border-left: 1px solid var(--선); }
   .박스덮개.옆칸 .박스 { padding-bottom: 12px; }
   .박스덮개.옆칸 .박스발 { position: sticky; bottom: 0; }
   .닫기 { display: none; }
