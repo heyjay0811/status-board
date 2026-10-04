@@ -1,6 +1,6 @@
 // GitHub 통로 `github.mjs`의 시험 — 메모리 안의 가짜 GitHub으로 돌리고, `--live`를 붙이면 공개 저장소를 실제로 읽는다. //
-// 따르는 설계: 관리부 설계 `bp-상황판` 제1조 ④⑤ · 제7조 ② · 제10조 ③⑤⑥⑧ //
-import { 통로만들기 } from './github.mjs';
+// 따르는 설계: 관리부 설계 `bp-상황판` 제1조 ④⑤ · 제7조 ② · 제10조 ②③⑤⑥⑧ //
+import { 통로만들기, 적어도됨 } from './github.mjs';
 import { 표시붙인글 } from './doc-mark.mjs';
 
 let 통과 = 0; const 실패 = [];
@@ -106,6 +106,16 @@ console.log('[github 시험] START');
   const 부서 = await 통로.부서저장소들();
   확인('파일 목록 다섯 곳을 동시에 받는다', 가장많이 === 5, `동시에 가장 많이 ${가장많이}곳`);
   확인('한꺼번에 받아도 저장소 차례는 목록 차례 그대로다', 부서.map((x) => x.이름).join() === '곳0,곳1,곳2,곳3,곳4', 부서.map((x) => x.이름).join());
+}
+{ // 적어도 되는 파일 — 관리부 설계 bp-상황판 제10조 ② · [관리부 작업 448] 시험 ② //
+  확인('적어도됨: 관리부 설계실 파일은 참', 적어도됨('management', 'docs/설계실.md') === true);
+  확인('적어도됨: 관리부 의회 파일은 참', 적어도됨('management', 'docs/assembly.md') === true);
+  확인('적어도됨: 다른 저장소(모든예약)의 설계실 파일은 거짓', 적어도됨('s36524-app', 'docs/설계실.md') === false);
+  확인('적어도됨: 관리부라도 작업 목록(docs/work.md)은 거짓', 적어도됨('management', 'docs/work.md') === false);
+  const 저장소들 = { 's36524-app': { 'docs/설계실.md': { 글: 의회, sha: 's0' } } };
+  const g = 가짜GitHub(저장소들); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
+  let 던짐 = ''; try { await 통로.고쳐쓰기('s36524-app', 'docs/설계실.md', (글) => 글 + 'x', '시험'); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
+  확인('고쳐쓰기()도 적어도 되는 파일이 아니면 GitHub에 묻지도 적지도 않고 던진다', 던짐.includes('관리부 저장소의 의회 파일과 설계실 파일에만') && g.기록.length === 0 && 저장소들['s36524-app']['docs/설계실.md'].글 === 의회, `${던짐} · 요청 ${g.기록.length}개`);
 }
 { // 열쇠 없이는 비공개 저장소가 안 읽힌다 — 없음(null)이 아니라 실패로 알려야 한다 //
   const g = 가짜GitHub({ management: {} }); const 통로 = 통로만들기({ fetch: g.fetch, 기록: 조용히 });

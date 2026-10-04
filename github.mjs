@@ -30,6 +30,12 @@ function b64를글(b64) {
   return new TextDecoder().decode(바이트);
 }
 
+// [관리부 작업 448] 제10조 ② — 상황판이 적어도 되는 파일은 관리부 저장소의 의회 파일과 설계실 파일 둘뿐이다. //
+//   적어도됨(저장소, 경로) = 저장소 = 관리부 AND 경로 ∈ {docs/assembly.md, docs/설계실.md}. GitHub 열쇠는 파일 하나씩으로 //
+//   좁힐 수 없어 코드가 막는다 — 부르는 쪽(app.mjs 찍기())이 먼저 재고, 고쳐쓰기()도 한 번 더 재서 거짓이면 적지 않고 던진다. //
+export const 적어도될파일 = { 저장소: 'management', 경로들: ['docs/assembly.md', 'docs/설계실.md'] };
+export const 적어도됨 = (저장소, 경로) => 저장소 === 적어도될파일.저장소 && 적어도될파일.경로들.includes(경로);
+
 // 통로 하나를 만든다. 열쇠가 없으면 공개 저장소만 읽힌다. //
 // API는 시험 때만 바꾼다 — 시험 서버(`dev-server.mjs`)가 GitHub과 같은 모양으로 임시 사본을 읽고 쓴다. //
 export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진짜API, fetch: 부르기 = globalThis.fetch?.bind(globalThis), 기록 = console } = {}) {
@@ -98,6 +104,10 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
   //   그사이 바뀐 글은 GitHub에 그대로 남는다. //
   async function 고쳐쓰기(저장소, 경로, 바꾸기, 메시지) {
     기록.log(`[GitHub 통로] START 고쳐쓰기 — ${저장소}/${경로}: ${메시지}`);
+    if (!적어도됨(저장소, 경로)) {
+      기록.log(`[GitHub 통로] ERROR 적지 않는다 — 상황판이 적어도 되는 파일이 아니다: ${저장소}/${경로}`);
+      throw new Error(`상황판은 관리부 저장소의 의회 파일과 설계실 파일에만 적는다 — ${저장소}/${경로}에는 적지 않는다`);
+    }
     const 지금 = await 파일읽기(저장소, 경로);
     if (!지금) throw new Error(`고쳐 쓸 파일이 GitHub에 없다: ${저장소}/${경로}`);
     const 새글 = 바꾸기(지금.글);
