@@ -46,6 +46,23 @@ a { color: var(--강조); }
 .줄몸 { padding: 0 0 14px; }
 /* GitHub에서 그 곳 저장소를 못 읽은 줄의 까닭 — 줄을 지우지 않고 글로 단다(제1조 ⑤ · 제7조 ②) */
 .줄까닭 { font-size: 12px; color: var(--빨강글); background: var(--빨강); padding: 1px 8px; border-radius: 6px; overflow-wrap: anywhere; }
+
+/* [관리부 작업 443] 지시 14·16 — PC 앱의 「프로젝트」 단추 줄. 옛 PC 앱 진행 현황의 고르는 줄(.folded) 모양 그대로 —
+   둥근 단추가 한 줄로 늘어서고, 고른 곳은 강조색으로 채운다. 단추 옆 📌는 고정(제2조 ⑭). 모바일 앱은 쓰지 않는다. */
+.곳단추줄 { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; padding: 8px 4px; margin: 0 0 10px; border-bottom: 1px solid var(--선); }
+.곳단추말 { font-size: 11px; color: var(--흐린); margin-right: 2px; }
+.곳단추묶음 { display: inline-flex; align-items: center; gap: 1px; }
+.곳단추묶음.딸림 { margin-left: -4px; }
+.곳단추 { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 11px; border: 1px solid var(--선); background: var(--바탕); color: var(--흐린); border-radius: 14px; cursor: pointer; }
+.곳단추:hover { border-color: var(--강조); color: var(--강조); }
+.곳단추묶음.켜짐 .곳단추 { background: var(--강조); border-color: var(--강조); color: #fff; }
+.곳단추 .수 { min-width: 0; padding: 0 5px; background: transparent; border: 0; font-size: 11px; color: inherit; opacity: .85; }
+.곳단추묶음.딸림 .곳단추 { border-style: dashed; }
+.곳단추묶음 .고정단추 { padding: 2px 4px; font-size: 11px; }
+.못읽음표 { color: var(--빨강글); font-weight: 700; }
+.곳단추묶음.켜짐 .못읽음표 { color: #fff; }
+.곳펼침 { border-bottom: 1px solid var(--선); margin-bottom: 12px; }
+.곳펼침제목 { font-size: 15px; margin: 6px 0 8px; color: var(--강조); }
 .곳줄.딸림 + .줄몸 { padding-left: 22px; }
 
 /* 목록 */
