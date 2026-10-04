@@ -44,6 +44,8 @@ a { color: var(--강조); }
 .고정단추:hover { opacity: .8; border-color: var(--선); }
 .고정단추.켜짐 { filter: none; opacity: 1; border-color: var(--강조); background: color-mix(in srgb, var(--강조) 12%, transparent); }
 .줄몸 { padding: 0 0 14px; }
+/* GitHub에서 그 곳 저장소를 못 읽은 줄의 까닭 — 줄을 지우지 않고 글로 단다(제1조 ⑤ · 제7조 ②) */
+.줄까닭 { font-size: 12px; color: var(--빨강글); background: var(--빨강); padding: 1px 8px; border-radius: 6px; overflow-wrap: anywhere; }
 .곳줄.딸림 + .줄몸 { padding-left: 22px; }
 
 /* 목록 */
@@ -60,6 +62,8 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .딱지.신설, .딱지.추가 { border-color: var(--새것); color: var(--새것); font-weight: 600; }
 .딱지.변경 { border-color: var(--바꿈); color: var(--바꿈); font-weight: 600; }
 .딱지.삭제, .딱지.제거 { border-color: var(--지움); color: var(--지움); font-weight: 600; }
+/* 지우면 사본이 남지 않는 항 — 다른 삭제 항과 갈라 보이게 채운 빨강(제6조 ⑭) */
+.딱지.사라짐 { border-color: var(--지움); background: var(--지움); color: #fff; font-weight: 700; }
 .자리딱지 { display: inline-block; font-size: 12px; margin-top: 4px; padding: 0 7px; border-radius: 6px; font-weight: 600;
   color: var(--강조); background: color-mix(in srgb, var(--강조) 12%, transparent); border: 1px solid color-mix(in srgb, var(--강조) 40%, transparent); }
 .박스 > .자리딱지 { display: block; }

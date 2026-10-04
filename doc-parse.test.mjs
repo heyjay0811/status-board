@@ -9,7 +9,7 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { 항목들, 항목머리, 항목분해, 필드분해, 상태줄읽기, 작업파일나누기, 진행현황읽기 } from './doc-parse.mjs';
+import { 항목들, 항목머리, 항목분해, 필드분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 상태머리말읽기, 곳차례비교 } from './doc-parse.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -167,6 +167,27 @@ console.log('\n[항목분해 — 번호 없는 줄]');
 // 이 부품은 status-board 저장소에 살고, 대조할 문서는 옆 폴더 관리부(D:/1code/management/docs)에 있다. //
 // 관리부가 없는 기계에서는 이 대목만 건너뛰고 건너뛴 것을 알린다. //
 const 관리부문서 = join(here, '..', 'management', 'docs');
+
+// ── 6-2. 곳의 차례 — 관리부 설계 `bp-상황판` 제8조 ③④⑨ ─────────── //
+console.log('\n[곳의 차례 — status.md 머리말의 type → order → 이름]');
+{
+  확인('머리말의 type·order를 읽는다', JSON.stringify(상태머리말읽기('---\ntype: 기타\norder: 2\nstart: 2026-01-01\n---\n# 본문\ntype: 개발')) === '{"종류":"기타","차례":2}', JSON.stringify(상태머리말읽기('---\ntype: 기타\norder: 2\n---')));
+  확인('type이 셋 가운데 하나가 아니면 미분류(「외주」)', 상태머리말읽기('---\ntype: 외주\n---').종류 === '미분류');
+  확인('머리말이 없거나 빈 글이면 미분류 · 차례 없음', JSON.stringify(상태머리말읽기('')) === '{"종류":"미분류","차례":null}' && 상태머리말읽기('# 제목만').종류 === '미분류');
+  확인('본문의 type: 줄은 머리말이 아니다', 상태머리말읽기('# 본문\n---\ntype: 개발\n---').종류 === '미분류');
+  const 곳 = (저장소, 종류, 차례 = null) => ({ 저장소, 종류, 차례 });
+  const 차례 = [곳('zeta', '지원'), 곳('b', '개발'), 곳('a', '개발'), 곳('c', '개발', 1), 곳('m', '미분류'), 곳('e', '기타')].sort(곳차례비교).map((x) => x.저장소).join(',');
+  확인('종류 묶음(개발 → 지원 → 기타 → 미분류) → order(작을수록 위, 비면 뒤) → 이름순', 차례 === 'c,a,b,zeta,e,m', 차례);
+  // 진짜 관리부 아래 여덟 곳의 status.md로 나올 차례 — 보고에 적는다 //
+  const 관리부폴더 = join(here, '..', 'management');
+  if (existsSync(관리부폴더)) {
+    const 곳들 = [['management', 관리부폴더], ['knowledge', join(관리부폴더, 'knowledge')], ['yessoft', join(관리부폴더, 'yessoft')]]
+      .concat(readdirSync(join(관리부폴더, 'projects')).map((n) => [n, join(관리부폴더, 'projects', n)]))
+      .filter(([, 폴더]) => existsSync(join(폴더, '.git')) && existsSync(join(폴더, '.claude')))
+      .map(([저장소, 폴더]) => ({ 저장소, ...상태머리말읽기(existsSync(join(폴더, 'docs', 'status.md')) ? readFileSync(join(폴더, 'docs', 'status.md'), 'utf8') : '') }));
+    console.log('     (진짜 status.md로 나올 줄 차례: ' + 곳들.sort(곳차례비교).map((x) => `${x.저장소}(${x.종류}${x.차례 === null ? '' : ' ' + x.차례})`).join(' → ') + ')');
+  }
+}
 
 // ── 7. 작업 파일 — 관리부 설계 `bp-상황판` 제13조 ③④⑤ · `rule-문서` 제10조 ⑪ · 제11조 ─────────── //
 console.log('\n[작업 파일 — 소제목과 지시·보고 짝]');

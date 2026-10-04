@@ -4,6 +4,7 @@
 //   보아도 진짜 문서는 바뀌지 않는다. 쓰기는 GitHub처럼 sha(파일 지문)가 맞을 때만 받는다 — 옛 글 위에 쓰면 409. //
 // 쓰는 법: `node dev-server.mjs` → 브라우저로 http://127.0.0.1:8787/?api=/api 를 연다. 열쇠는 아무 영문 글자나 넣는다. //
 //   「wrong」으로 시작하는 열쇠를 넣으면 읽기는 되고 쓰기만 401로 막힌다 — 못 적었을 때의 화면을 잰다. //
+//   `SB_HIDE=yessoft`면 그 저장소를 열쇠가 못 보는 것처럼 404로, `SB_SCREEN_FAIL=bill-parse.mjs`면 그 화면 코드 파일을 404로 준다. //
 //   `SB_READ_FAIL=작업-448`처럼 주면 경로에 그 조각이 든 파일은 목록에는 있고 읽기만 500이다 — 못 읽었을 때의 화면을 잰다. //
 // 한계: 저장소 여덟 곳의 docs 문서 몇백 개까지만 생각했다 · 바꿀 때: 시험할 문서가 수천 개가 되면 필요한 파일만 복사한다. //
 import { createServer } from 'node:http';
@@ -54,6 +55,10 @@ const 읽기지연 = Number(process.env.SB_READ_DELAY_MS || 0);
 // 일부러 못 읽게 할 파일 — 경로에 이 조각(쉼표로 여럿)이 든 파일은 파일 목록에는 두고 읽기(GET)만 500을 돌려준다. //
 //   파일 목록에 있는데 못 읽을 때 화면이 무엇을 못 읽었는지 알리는지 잰다(bp-상황판 제13조 ② · 제7조 ②). //
 const 못읽을것 = String(process.env.SB_READ_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
+// 열쇠가 못 보는 저장소 흉내 — 이 이름(쉼표로 여럿)의 저장소는 저장소 목록에서 빠지고 파일 목록·파일 읽기가 404다(bp-상황판 제1조 ⑤ · 제7조 ②). //
+const 숨길저장소 = String(process.env.SB_HIDE || '').split(',').map((s) => s.trim()).filter(Boolean);
+// 못 읽게 할 화면 코드 파일 — 이 이름(쉼표로 여럿)의 화면 파일은 404다. 화면 모듈을 못 불러올 때 알리는지 잰다(제7조 ②). //
+const 못줄화면 = String(process.env.SB_SCREEN_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
 const 서버 = createServer((요청, 응답) => {
   const u = new URL(요청.url, 'http://127.0.0.1');
   const 경로 = decodeURIComponent(u.pathname);
@@ -64,12 +69,15 @@ const 서버 = createServer((요청, 응답) => {
   try {
     if (!경로.startsWith('/api/')) {   // 화면 파일 — 이 저장소 폴더 안만 내준다 //
       const 파일 = join(여기, 경로 === '/' ? 'index.html' : 경로);
+      if (못줄화면.some((이름) => 경로.endsWith('/' + 이름))) { console.log(`[시험 서버] 화면 파일을 일부러 안 준다(404) — ${경로}`); 응답.writeHead(404); 응답.end('없다'); return; }
       if (relative(여기, 파일).startsWith('..') || !existsSync(파일) || statSync(파일).isDirectory()) { 응답.writeHead(404); 응답.end('없다'); return; }
       응답.writeHead(200, { 'Content-Type': 종류표[extname(파일)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
       응답.end(readFileSync(파일)); return;
     }
     const api = 경로.slice(4);
-    if (api === '/user/repos') return 답(200, Object.keys(저장소들).map((name) => ({ name })));
+    if (api === '/user/repos') return 답(200, Object.keys(저장소들).filter((name) => !숨길저장소.includes(name)).map((name) => ({ name })));
+    const 숨김 = 숨길저장소.find((name) => api.startsWith(`/repos/heyjay0811/${name}/`));
+    if (숨김) { console.log(`[시험 서버] 열쇠가 못 보는 저장소 흉내(404) — ${숨김}`); return 답(404, { message: 'Not Found' }); }
     let m;
     if ((m = api.match(/^\/repos\/[^/]+\/([^/]+)\/git\/trees\/HEAD$/))) {
       const 폴더 = join(뿌리, m[1]);

@@ -11,7 +11,7 @@
 import { 통로만들기, 적어도됨 } from './github.mjs';
 import { 표시붙인글, 코멘트붙인글 } from './doc-mark.mjs';
 import { 법안읽기, 고를답, 곳이름, 설계안묶기 } from './bill-parse.mjs';
-import { 항목분해, 상태줄읽기, 작업파일나누기, 진행현황읽기 } from './doc-parse.mjs';
+import { 항목분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 상태머리말읽기, 곳차례비교 } from './doc-parse.mjs';
 import { 막기, 꾸미기, 달라진데, 지운데, 앞줄표시나누기, 항밖글, 앞글나누기, 파일미리보기, 자리벗기기, 같은글, 자리묶기, 묶은목록 } from './assembly-view.mjs';
 
 const 기록 = (말) => console.log('[상황판] ' + 말);
@@ -19,7 +19,10 @@ const 열쇠자리 = 'sb.열쇠';
 const 주소칸 = new URLSearchParams(location.search);
 const API = 주소칸.get('api') || undefined;   // 시험 서버를 쓸 때만 준다(`dev-server.mjs`) //
 const 의회자리 = { 저장소: 'management', 경로: 'docs/assembly.md' };
-const 곳차례 = Object.keys(곳이름);
+// 제2조 ⑦ — management·yessoft·knowledge 폴더는 이름 앞에 한글 이름을 붙여 「관리부/management」 꼴로 보인다. //
+//   다른 곳은 한글 이름만, 표에 없는 곳은 저장소 이름 그대로다. //
+const 폴더도보일곳 = ['management', 'yessoft', 'knowledge'];
+const 보일이름 = (저장소) => (!곳이름[저장소] ? 저장소 : 폴더도보일곳.includes(저장소) ? `${곳이름[저장소]}/${저장소}` : 곳이름[저장소]);
 
 // 브라우저 저장소는 막혀 있을 수 있다(사생활 창 같은 곳) — 막혀도 화면은 열쇠 칸을 다시 보인다 //
 const 열쇠읽기 = () => { try { return localStorage.getItem(열쇠자리) || ''; } catch (e) { 기록('열쇠를 못 읽었다: ' + e.message); return ''; } };
@@ -29,6 +32,9 @@ const 열쇠쓰기 = (v) => { try { v ? localStorage.setItem(열쇠자리, v) : 
 // 줄손댐 — 사용자가 줄을 펼치거나 고정했는가. 손대기 전에만 GitHub과 맞춘 뒤 가장 최근 줄을 다시 고른다(제2조 ⑫). //
 const 상태 = { 통로: null, 곳들: [], 의회: null, 열린: null, 쓰는줄: null, 알림: '', 원문: {}, 고른줄: null, 고정: new Set(), 줄손댐: false };
 const PC = window.상황판PC || null;   // PC 앱이 심는 것 — 위 머리 주석 //
+// [관리부 작업 443] 제8조 ⑨ — 곳마다 status.md 머리말의 종류·order. PC 앱은 PC 폴더의 status.md에서 읽어 넘기고(진행 현황은 //
+//   PC 폴더에서 읽는다 — 제1조 ①), 모바일 앱은 곳마다 GitHub의 docs/status.md를 읽는다. { 저장소: { 종류, 차례, 오류 } } //
+const PC곳정보 = PC && PC.곳정보 ? PC.곳정보 : null;
 const 본문 = document.getElementById('본문');
 const 덮개 = document.getElementById('박스덮개');
 const 박스 = document.getElementById('박스');
@@ -43,11 +49,15 @@ const 때 = (iso) => iso ? new Date(iso).toLocaleString('ko-KR', { month: 'numer
 // ★한 문서를 못 읽으면 그 문서는 기기에 둔 글로 두고 그 곳에 오류를 보인다 — 「없다」로 덮지 않는다(개발 규칙 제2조 ①). //
 // ★기기 저장이 막혀 있으면(사생활 창 같은 곳) 매번 처음처럼 다 받는다 — 화면은 그대로 뜬다. //
 const 문서자리 = 'sb.문서', 곳목록자리 = 'sb.곳목록', 맞춘때자리 = 'sb.맞춘때';
-const 세문서 = ['docs/work.md', 'docs/설계실.md', 의회자리.경로];
+const 세문서 = ['docs/work.md', 'docs/설계실.md', 의회자리.경로, 'docs/status.md'];
 // [관리부 작업 448] 제1조 ④ · 제11조 ① — 의회와 설계실은 관리부에 하나씩만 있어, 관리부 저장소의 두 파일만 읽고 다른 //
 //   저장소의 같은 이름 파일은 곳 목록에 넣지 않는다. 다른 곳은 작업 목록(docs/work.md)만 읽는다. //
 const 설계실자리 = { 저장소: 'management', 경로: 'docs/설계실.md' };
-const 읽을문서인가 = (저장소, 경로) => 경로 === 'docs/work.md' || (저장소 === 의회자리.저장소 && (경로 === 의회자리.경로 || 경로 === 설계실자리.경로));
+// 모바일 앱은 줄 차례(제8조 ⑨)를 정하려고 곳마다 docs/status.md도 읽는다 — PC 앱은 PC 폴더에서 읽어 넘기므로 읽지 않는다 //
+const 읽을문서인가 = (저장소, 경로) => 경로 === 'docs/work.md' || (경로 === 'docs/status.md' && !PC곳정보)
+  || (저장소 === 의회자리.저장소 && (경로 === 의회자리.경로 || 경로 === 설계실자리.경로));
+// 곳 목록을 지은 판 — 판이 다르면(작업 파일·status.md를 찾기 전 판이 남긴 목록) 저장소를 다시 훑는다 //
+const 곳목록판 = 2;
 const 저장읽기 = (자리, 없으면) => { try { const v = localStorage.getItem(자리); return v ? JSON.parse(v) : 없으면; } catch (e) { 기록(`ERROR 기기 저장(${자리})을 못 읽었다: ${e.message}`); return 없으면; } };
 const 저장쓰기 = (자리, 값) => { try { localStorage.setItem(자리, JSON.stringify(값)); } catch (e) { 기록(`ERROR 기기 저장(${자리})을 못 적었다 — 다음에 열 때 다시 다 받는다: ${e.message}`); } };
 let 문서 = 저장읽기(문서자리, {});        // { '저장소/경로': { 글, 지문, 시각 } } //
@@ -60,22 +70,49 @@ const 작업파일꼴 = /^docs\/작업\/작업-\d+\.md$/;
 상태.맞추는중 = false;
 상태.문서오류 = {};
 
+// [관리부 작업 443] 제1조 ⑤ — 상황판은 PC에서는 `.git`과 `.claude`를 둘 다 가진 폴더를, GitHub에서는 `.claude` 폴더를 가진 //
+//   저장소를 부서·프로젝트로 센다. PC 앱은 PC 폴더 곳 이름 목록(window.상황판PC.곳이름들)을 넘기고, 이 화면은 그 목록으로 //
+//   줄을 세운 뒤 곳마다 GitHub 파일 목록으로 문서를 찾는다. 모바일 앱은 이 목록이 없어 GitHub 저장소로 센다. //
+// ★한 곳이라도 GitHub에서 못 읽으면(열쇠가 그 저장소를 못 보는 때 같은 것) 그 줄을 지우지 않고 까닭을 단다(제7조 ②). //
+const PC곳이름들 = PC && Array.isArray(PC.곳이름들) ? PC.곳이름들 : null;
+async function PC곳들읽기() {
+  기록(`START PC 폴더 곳 ${PC곳이름들.length}곳의 GitHub 파일 목록을 받는다`);
+  const 곳들 = await Promise.all(PC곳이름들.map(async (이름) => {
+    try { return { 이름, 목록: await 상태.통로.파일목록(이름) }; }
+    catch (e) { 기록(`ERROR ${이름} — GitHub 파일 목록을 못 받았다: ${e.message}`); return { 이름, 목록: [], 오류: e.message }; }
+  }));
+  기록(`SUCCESS PC 폴더 곳 ${곳들.length}곳 · GitHub에서 못 읽은 곳 ${곳들.filter((x) => x.오류).length}곳`);
+  return 곳들;
+}
+
 // 기기에 둔 문서로 화면 상태를 짓는다 //
 function 저장에서짓기() {
   상태.원문 = {}; 상태.의회 = null; 상태.설계실 = null;
-  상태.곳들 = [...(곳목록 || [])].sort((a, b) => (곳차례.indexOf(a.이름) + 1 || 99) - (곳차례.indexOf(b.이름) + 1 || 99)).map((곳) => {
-    const 결과 = { 저장소: 곳.이름, 이름: 곳이름[곳.이름] || 곳.이름, 작업: null, 오류: [], 시각: {} };
+  상태.곳들 = (곳목록 || []).map((곳) => {
+    // 종류·차례는 status.md가 없거나 type이 비면 미분류(제8조 ④) //
+    const 결과 = { 저장소: 곳.이름, 이름: 보일이름(곳.이름), 작업: null, 오류: [], 시각: {}, 목록오류: 곳.목록오류 || '', 줄까닭: '', 종류: '미분류', 차례: null };
+    // PC 폴더에는 있는데 GitHub에서 그 저장소를 못 읽은 곳 — 줄은 지우지 않고 까닭을 단다(제1조 ⑤ · 제7조 ②) //
+    if (곳.목록오류) { 결과.오류.push(`GitHub에서 못 읽었다 — ${곳.목록오류}`); 결과.줄까닭 = `GitHub에서 못 읽었다 — ${곳.목록오류}`; }
+    let 상태오류 = '';
+    if (PC곳정보) {
+      const 정보 = PC곳정보[곳.이름] || {};
+      if (정보.오류) 상태오류 = 정보.오류; else Object.assign(결과, { 종류: 정보.종류 || '미분류', 차례: 정보.차례 ?? null });
+    }
     for (const 경로 of 곳.문서들) {
       const k = 곳.이름 + '/' + 경로, d = 문서[k];
       if (상태.문서오류[k]) 결과.오류.push(`${경로}: ${상태.문서오류[k]}`);
+      if (경로 === 'docs/status.md' && 상태.문서오류[k]) { 상태오류 = 상태.문서오류[k]; continue; }
       if (!d) continue;
       상태.원문[k] = d.글; 결과.시각[경로] = d.시각;
       if (경로 === 'docs/work.md') 결과.작업 = 항목분해(d.글, { 종류: '작업' });
+      else if (경로 === 'docs/status.md') Object.assign(결과, 상태머리말읽기(d.글));
       else if (경로 === 설계실자리.경로 && 곳.이름 === 설계실자리.저장소) 상태.설계실 = 법안읽기(d.글, '설계실.md');
       else if (경로 === 의회자리.경로 && 곳.이름 === 의회자리.저장소) 상태.의회 = 법안읽기(d.글, 'assembly.md');
     }
+    // status.md를 못 읽은 곳은 미분류로 맨 아래에 두고 줄에 까닭을 단다(제8조 ⑨ · 제7조 ②) //
+    if (상태오류) { 결과.종류 = '미분류'; 결과.차례 = null; 결과.줄까닭 ||= `docs/status.md를 못 읽어 차례를 미분류로 두었다 — ${상태오류}`; }
     return 결과;
-  });
+  }).sort(곳차례비교);   // 제8조 ⑨ — 종류 → order → 이름 //
 }
 
 async function 모두읽기(훑기 = false) {
@@ -84,12 +121,15 @@ async function 모두읽기(훑기 = false) {
   상태.맞추는중 = true; 그리기();
   try {
     // ★기기에 둔 곳 목록에 작업 파일 목록이 없으면(작업 파일을 찾기 전 판이 남긴 것) 저장소를 다시 훑는다 //
-    const 작업파일모름 = 곳목록 && 곳목록.some((곳) => !Array.isArray(곳.작업파일들));
-    if (!곳목록 || 훑기 || 작업파일모름) {
+    const 작업파일모름 = 곳목록 && 곳목록.some((곳) => !Array.isArray(곳.작업파일들) || 곳.판 !== 곳목록판);
+    // ★PC 앱이면 기기에 둔 곳 목록이 PC 폴더 곳과 다르거나, 지난번에 GitHub에서 못 읽은 곳이 있으면 다시 훑는다 //
+    const PC곳다름 = 곳목록 && PC곳이름들 && (곳목록.map((x) => x.이름).sort().join() !== [...PC곳이름들].sort().join() || 곳목록.some((x) => x.목록오류));
+    if (!곳목록 || 훑기 || 작업파일모름 || PC곳다름) {
       if (작업파일모름) 기록('기기에 둔 곳 목록에 작업 파일 목록이 없다 — 저장소를 다시 훑는다');
-      const 곳들 = await 상태.통로.부서저장소들();
+      if (PC곳다름) 기록('기기에 둔 곳 목록이 PC 폴더 곳과 다르거나 못 읽은 곳이 있다 — 다시 훑는다');
+      const 곳들 = PC곳이름들 ? await PC곳들읽기() : await 상태.통로.부서저장소들();
       곳목록 = 곳들.map((곳) => ({ 이름: 곳.이름, 문서들: 세문서.filter((p) => 곳.목록.includes(p) && 읽을문서인가(곳.이름, p)),
-        작업파일들: 곳.목록.filter((p) => 작업파일꼴.test(p)) }));
+        작업파일들: 곳.목록.filter((p) => 작업파일꼴.test(p)), 판: 곳목록판, ...(곳.오류 ? { 목록오류: 곳.오류 } : {}) }));
       저장쓰기(곳목록자리, 곳목록);
       기록(`곳 목록을 정했다 — 작업 파일 ${곳목록.reduce((n, 곳) => n + 곳.작업파일들.length, 0)}개`);
     }
@@ -209,7 +249,10 @@ function 줄고르기() {
 function 줄목록글() {
   return '<div class="줄목록">' + 줄들().map((x) => {
     const 펼침 = 펼친가(x.키), 고정 = 상태.고정.has(x.키);
-    const 오류 = x.곳 && x.곳.오류.length ? `<span class="딱지 판단" title="${막기(x.곳.오류.join(' / '))}">못 읽은 문서 있음</span>` : '';
+    // GitHub에서 그 저장소를 못 읽었거나 status.md를 못 읽은 곳은 줄에 까닭을 글로 단다(제1조 ⑤ · 제8조 ⑨ · 제7조 ②). //
+    //   다른 문서 하나만 못 읽었으면 딱지로 알린다 //
+    const 오류 = !x.곳 ? '' : x.곳.줄까닭 ? `<span class="줄까닭">${막기(x.곳.줄까닭)}</span>`
+      : x.곳.오류.length ? `<span class="딱지 판단" title="${막기(x.곳.오류.join(' / '))}">못 읽은 문서 있음</span>` : '';
     const 머리 = `<div class="곳줄${x.딸림 ? ' 딸림' : ''}${펼침 ? ' 펼침' : ''}">`
       + `<button type="button" class="펼침단추" data-펼침="${막기(x.키)}" aria-expanded="${펼침}" title="${펼침 ? '누르면 접는다' : '누르면 펼친다'}">`
       + `<span class="화살표">${펼침 ? '▾' : '▸'}</span><span class="이름">${막기(x.이름)}</span>`
@@ -356,7 +399,7 @@ function 의회글() {
 function 설계실글() {
   if (!상태.설계실) return '<p class="오류">설계실 파일을 못 읽었다 — 관리부 저장소의 docs/설계실.md</p>';
   return 설계안묶기(상태.설계실, 상태.곳들.map((x) => x.저장소)).map((묶음) => {
-    const 이름 = 곳이름[묶음.저장소] || 묶음.저장소;
+    const 이름 = 보일이름(묶음.저장소);
     return `<details class="자리큰" open><summary>${막기(이름)} <span class="자리수">${묶음.안.length}</span></summary>`
       + 묶음.안.map(({ 항목, 번째 }) => 항목줄(항목, `설계실:${번째}`)).join('') + '</details>';
   }).join('');
@@ -420,7 +463,10 @@ function 박스그리기() {
     const 자리 = `<b>${막기(p.자리)}</b> `;
     if (p.표 === '신설') return `<div class="항 될">${자리}${꾸미기(p.고칠)}</div>`;
     if (p.표 === '삭제') return `<div class="항 지울">${자리}${꾸미기(p.지금)}</div>`;
-    return `<div class="항 지울">${자리}${지운데(p.지금, p.고칠)}</div><div class="화살">↓</div><div class="항 될">${자리}${달라진데(p.지금, p.고칠)}</div>`;
+    // 항 밖 (변경) 블록도 굵게·자리 표시를 벗긴 조문 글자로 견주고, 바뀔 글도 벗긴 글로 보인다(제6조 ⑧) //
+    const 지금 = 자리벗기기(p.지금), 새 = 자리벗기기(p.고칠);
+    if (같은글(지금, 새)) return `<div class="항">${자리}${꾸미기(새)}</div>`;
+    return `<div class="항 지울">${자리}${지운데(지금, 새)}</div><div class="화살">↓</div><div class="항 될">${자리}${달라진데(지금, 새)}</div>`;
   }).join('');
   // 항 — (변경)은 지금 빨강 ↓ 고칠 초록, (신설)은 초록, (삭제)는 빨강, 표시 없는 항은 흐리게(제6조 ⑤⑥). //
   //   표시가 하나도 없는 신설 법안(새 조·새 스킬)은 항 전부가 새로 생기는 글이다. //
@@ -430,7 +476,8 @@ function 박스그리기() {
   const 항들 = it.항.map((x) => {
     const 기호 = `<span class="기호">${x.기호}</span>`;
     let 몸;
-    if (it.종류 === '삭제' || it.종류 === '제거') 몸 = `<div class="항 지울">${기호}${꾸미기(x.지금글 !== null ? x.지금글 : x.글)}</div>` + (x.까닭 ? `<div class="까닭">왜 지우나: ${꾸미기(x.까닭)}</div>` : '');
+    // 「왜 지우나」에 「지우면 사라진다」가 적힌 항에는 「지우면 사라짐」 딱지를 따로 붙인다(제6조 ⑭) //
+    if (it.종류 === '삭제' || it.종류 === '제거') 몸 = `<div class="항 지울">${기호}${x.사라짐 ? '<span class="딱지 사라짐">지우면 사라짐</span> ' : ''}${꾸미기(x.지금글 !== null ? x.지금글 : x.글)}</div>` + (x.까닭 ? `<div class="까닭">왜 지우나: ${꾸미기(x.까닭)}</div>` : '');
     else if (x.표 === '변경' && x.지금글 !== null) {
       const 지금 = 자리벗기기(x.지금글), 새 = 자리벗기기(x.글);
       몸 = 같은글(지금, 새) ? `<div class="항">${기호}${꾸미기(새)}</div>`
