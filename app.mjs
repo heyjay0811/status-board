@@ -13,6 +13,7 @@
 // ★PC 앱은 이 파일을 모듈로 그대로 싣고(관리부 tools/progress.mjs), `window.상황판PC`로 PC 몫만 맡는다 — 곳의 차트·환경 칸 //
 //   (곳칸), 의회·설계실의 현황 칸(현황칸), 「↻ 다시 읽기」(다시읽기). 모바일 앱에는 이 이름이 없어 차트와 환경이 서지 않는다. //
 import { 통로만들기, 적어도됨 } from './github.mjs';
+import { PC통로만들기, PC문서통로있음 } from './pc-docs.mjs';
 import { 표시붙인글, 코멘트붙인글 } from './doc-mark.mjs';
 import { 법안읽기, 고를답, 곳이름, 설계안묶기, 맞댈법안인가, 갈곳파일, 조고르기, 맞댄종류, 못맞댄종류, 항맞대기, 첫기록줄 } from './bill-parse.mjs';
 import { 항목분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 부서인가, 설계문서읽기 } from './doc-parse.mjs';
@@ -29,50 +30,16 @@ const 폴더도보일곳 = ['management', 'yessoft', 'knowledge'];
 const 보일이름 = (저장소) => (!곳이름[저장소] ? 저장소 : 폴더도보일곳.includes(저장소) ? `${곳이름[저장소]}/${저장소}` : 곳이름[저장소]);
 
 // ── 열쇠 ─────────────────────────────────────────────────────────────── //
-// [관리부 작업 443] bp-백엔드 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」 조 — //
-//   열쇠자리 = 화면에 통로의 열쇠 읽기가 있음 ? 앱 본체의 열쇠 파일(Windows 암호 저장으로 감쌈) : 브라우저 저장. //
-//   · 열쇠 파일 없음 AND 창의 브라우저 저장에 열쇠 있음 → 그 열쇠를 열쇠 파일로 한 번 옮기고, 적힌 뒤에 브라우저 저장의 열쇠를 지운다. //
-//   · 열쇠 파일이 있는데 못 읽거나 못 풀면 → 열쇠 넣기 화면 맨 위에 「열쇠 파일을 못 읽었다 — 까닭」. //
-//   · 암호 저장을 못 쓰거나 파일을 못 적으면 → 감싸지 않은 채 적지 않고 그 실행 동안만 쓰며, 목록 화면 맨 위에 //
-//     「열쇠를 이 기기에 못 남겼다 — 까닭」. //
-// ★통로는 PC 앱 본체(tools/key-ipc.cjs)가 걸고 preload가 내준다. 모바일 앱에는 통로가 없어 브라우저 저장을 그대로 쓴다. //
-const 열쇠통로 = window.상황판 && typeof window.상황판.열쇠읽기 === 'function' && typeof window.상황판.열쇠쓰기 === 'function' ? window.상황판 : null;
+// [관리부 작업 443] bp-백엔드 「상황판 모바일 앱은 비공개 저장소를 열쇠로 읽고, PC 앱은 `git`이 가진 GitHub 로그인을 쓰며, 찍은 답은 의회 파일과 설계실 파일에만 적는다」 조 — //
+//   열쇠는 모바일 앱만 브라우저 저장에 둔다. PC 앱은 열쇠를 받지 않고 앱 본체의 문서 통로(pc-docs.mjs)로 PC 폴더를 읽는다. //
 // 브라우저 저장소는 막혀 있을 수 있다(사생활 창 같은 곳) — 막혀도 화면은 열쇠 칸을 다시 보인다 //
 const 브라우저열쇠읽기 = () => { try { return localStorage.getItem(열쇠자리) || ''; } catch (e) { 기록('열쇠를 못 읽었다: ' + e.message); return ''; } };
 const 브라우저열쇠쓰기 = (v) => { try { v ? localStorage.setItem(열쇠자리, v) : localStorage.removeItem(열쇠자리); return true; } catch (e) { 기록('ERROR 열쇠를 브라우저 저장에 못 적었다: ' + e.message); return false; } };
-let 이번실행열쇠 = '';   // 열쇠 파일에 못 남긴 열쇠 — 이 실행 동안만 쓴다 //
-async function 열쇠파일쓰기(v) {
-  let r;
-  try { r = await 열쇠통로.열쇠쓰기(v); } catch (e) { r = { ok: false, 이유: e.message }; }
-  if (r && r.ok) { 상태.열쇠못남김 = ''; 이번실행열쇠 = ''; 기록('SUCCESS 열쇠를 열쇠 파일에 적었다'); return true; }
-  상태.열쇠못남김 = `열쇠를 이 기기에 못 남겼다 — ${(r && r.이유) || '까닭을 못 받았다'}`;
-  이번실행열쇠 = v;
-  기록('ERROR ' + 상태.열쇠못남김 + ' — 이 실행 동안만 쓴다');
-  return false;
-}
-async function 열쇠읽기() {
-  if (!열쇠통로) return 브라우저열쇠읽기();
-  let r;
-  try { r = await 열쇠통로.열쇠읽기(); } catch (e) { r = { ok: false, 이유: e.message }; }
-  if (!r || !r.ok) {
-    상태.열쇠알림 = `열쇠 파일을 못 읽었다 — ${(r && r.이유) || '까닭을 못 받았다'}`;
-    기록('ERROR ' + 상태.열쇠알림);
-    return 이번실행열쇠;
-  }
-  상태.열쇠알림 = '';
-  if (r.있음) { 기록('열쇠 파일에서 열쇠를 읽었다'); return r.열쇠; }
-  const 옛 = 브라우저열쇠읽기();
-  if (!옛) return 이번실행열쇠;
-  기록('START 열쇠 파일이 없고 브라우저 저장에 열쇠가 있다 — 열쇠 파일로 옮긴다');
-  if (await 열쇠파일쓰기(옛)) { 브라우저열쇠쓰기(''); 기록('SUCCESS 열쇠를 열쇠 파일로 옮기고 브라우저 저장의 열쇠를 지웠다'); }
-  else 기록('ERROR 열쇠를 옮기지 못해 브라우저 저장의 열쇠를 그대로 둔다');
-  return 옛;
-}
 
 // 고른줄·고정 — 펼침(곳) = (곳 = 고른 곳) OR 고정(곳). 고정은 기기에 저장하지 않는다. //
 //   고정은 고정한 차례가 남는 목록이다(Set은 넣은 차례를 지킨다) — 차트와 뷰어가 이 차례로 선다(bp-프론트엔드). //
 // 줄손댐 — 사용자가 단추를 고르거나 고정했는가. 손대기 전에만 GitHub과 맞춘 뒤 가장 최근 곳을 다시 고른다. //
-const 상태 = { 통로: null, 곳들: [], 의회: null, 열린: null, 쓰는줄: null, 알림: '', 원문: {}, 고른줄: null, 고정: new Set(), 줄손댐: false, 열쇠알림: '', 열쇠못남김: '' };
+const 상태 = { 통로: null, 곳들: [], 의회: null, 열린: null, 쓰는줄: null, 알림: '', 원문: {}, 고른줄: null, 고정: new Set(), 줄손댐: false, 받기실패: {} };
 const PC = window.상황판PC || null;   // PC 앱이 심는 것 — 위 머리 주석 //
 const 본문 = document.getElementById('본문');
 const 덮개 = document.getElementById('박스덮개');
@@ -147,12 +114,12 @@ const 작업파일꼴 = /^docs\/작업\/작업-\d+\.md$/;
 // ★한 곳이라도 GitHub에서 못 읽으면(열쇠가 그 저장소를 못 보는 때 같은 것) 그 줄을 지우지 않고 까닭을 단다(bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」). //
 const PC곳이름들 = PC && Array.isArray(PC.곳이름들) ? PC.곳이름들 : null;
 async function PC곳들읽기() {
-  기록(`START PC 폴더 곳 ${PC곳이름들.length}곳의 GitHub 파일 목록을 받는다`);
+  기록(`START PC 폴더 곳 ${PC곳이름들.length}곳의 파일 목록을 받는다(${상태.통로.PC ? 'PC 폴더' : 'GitHub'})`);
   const 곳들 = await Promise.all(PC곳이름들.map(async (이름) => {
     try { return { 이름, 목록: await 상태.통로.파일목록(이름) }; }
-    catch (e) { 기록(`ERROR ${이름} — GitHub 파일 목록을 못 받았다: ${e.message}`); return { 이름, 목록: [], 오류: e.message }; }
+    catch (e) { 기록(`ERROR ${이름} — 파일 목록을 못 받았다: ${e.message}`); return { 이름, 목록: [], 오류: e.message }; }
   }));
-  기록(`SUCCESS PC 폴더 곳 ${곳들.length}곳 · GitHub에서 못 읽은 곳 ${곳들.filter((x) => x.오류).length}곳`);
+  기록(`SUCCESS PC 폴더 곳 ${곳들.length}곳 · 못 읽은 곳 ${곳들.filter((x) => x.오류).length}곳`);
   return 곳들;
 }
 
@@ -163,7 +130,9 @@ function 저장에서짓기() {
     // 설계 — 파일 목록에 있는 bp 파일마다 읽은 결과나 못 읽은 까닭(bp-설계). 모듈 수는 파일 수, 조 수는 읽은 파일의 조 수 합이다 //
     const 결과 = { 저장소: 곳.이름, 이름: 보일이름(곳.이름), 작업: null, 오류: [], 시각: {}, 목록오류: 곳.목록오류 || '', 줄까닭: '', 설계: [] };
     // PC 폴더에는 있는데 GitHub에서 그 저장소를 못 읽은 곳 — 단추는 지우지 않고 까닭을 단다(bp-부서프로젝트목록 · bp-백엔드) //
-    if (곳.목록오류) { 결과.오류.push(`GitHub에서 못 읽었다 — ${곳.목록오류}`); 결과.줄까닭 = `GitHub에서 못 읽었다 — ${곳.목록오류}`; }
+    if (곳.목록오류) { const 말 = `${상태.통로 && 상태.통로.PC ? 'PC 폴더' : 'GitHub'}에서 못 읽었다 — ${곳.목록오류}`; 결과.오류.push(말); 결과.줄까닭 = 말; }
+    // PC 앱 — GitHub에서 받아 오지 못한 곳은 받기 전 PC 폴더로 그리고 그 곳 단추에 까닭을 단다(bp-백엔드) //
+    if (상태.받기실패[곳.이름]) { const 말 = `GitHub에서 못 받아 왔다 — ${상태.받기실패[곳.이름]}`; 결과.오류.push(말); 결과.줄까닭 = 결과.줄까닭 ? 결과.줄까닭 + ' · ' + 말 : 말; }
     for (const 경로 of 곳.문서들) {
       const k = 곳.이름 + '/' + 경로, d = 문서[k];
       const 설계 = 설계꼴.test(경로);
@@ -184,6 +153,13 @@ async function 모두읽기(훑기 = false) {
   if (곳목록 && !훑기) { 저장에서짓기(); 줄고르기(); }   // 지난번 받은 글로 먼저 그린다 //
   상태.맞추는중 = true; 그리기();
   try {
+    // [관리부 작업 443] bp-백엔드 — PC 앱은 열 때와 다시 읽기 때 저장소마다 GitHub에서 받아 온 뒤 PC 폴더를 읽는다. //
+    //   회장실·전역 환경 저장소도 받는다 — 의회 박스가 법안을 그 파일과 맞댄다. 못 받은 곳은 받기 전 폴더로 읽고 까닭을 단다. //
+    if (상태.통로.받아오기 && PC곳이름들) {
+      const 못받음 = await 상태.통로.받아오기([...PC곳이름들, 'yessoftbook', 'claude-config']);
+      상태.받기실패 = Object.fromEntries(못받음.map((x) => [x.저장소, x.까닭]));
+      기록(`받아 오기 — 못 받은 곳 ${못받음.length}곳${못받음.length ? ': ' + 못받음.map((x) => x.저장소).join('·') : ''}`);
+    }
     // ★기기에 둔 곳 목록에 작업 파일 목록이 없으면(작업 파일을 찾기 전 판이 남긴 것) 저장소를 다시 훑는다 //
     const 작업파일모름 = 곳목록 && 곳목록.some((곳) => !Array.isArray(곳.작업파일들) || 곳.판 !== 곳목록판);
     // ★PC 앱이면 기기에 둔 곳 목록이 PC 폴더 곳과 다르거나, 지난번에 GitHub에서 못 읽은 곳이 있으면 다시 훑는다 //
@@ -220,7 +196,8 @@ async function 모두읽기(훑기 = false) {
     기록(`기기 저장 — 문서 칸 ${적은칸}개를 적고 ${지울것.length}개를 지웠다(안 바뀐 ${안바뀜}개는 그대로)`);
     상태.문서오류 = 오류;
     상태.맞춘때 = new Date().toISOString(); 저장쓰기(맞춘때자리, 상태.맞춘때);
-    상태.알림 = '';
+    const 못받은곳 = Object.keys(상태.받기실패);
+    상태.알림 = 못받은곳.length ? `GitHub에서 못 받아 왔다 — ${못받은곳.map((x) => `${보일이름(x)}: ${상태.받기실패[x]}`).join(' · ')} (받기 전 PC 폴더로 보이는 중)` : '';
     저장에서짓기(); 줄고르기();
     기록(`SUCCESS 모두읽기 — ${상태.곳들.length}곳 · 새로 받음 ${받음} · 안 바뀜 ${안바뀜} · 못 읽음 ${Object.keys(오류).length} · 법안 ${상태.의회 ? 상태.의회.length : '못 읽음'}`);
   } catch (e) {
@@ -281,7 +258,7 @@ function 그리기() {
   //   그 곳 뷰어가 작업 목록이 아니라 환경·설계 카드를 보이고 있으면 작업 박스도 닫는다 //
   const 열린키 = 상태.열린 && 열린줄키(상태.열린.열쇠);
   if (상태.열린 && (!펼친가(열린키) || (열린키.startsWith('곳:') && 보기(열린키.slice(2)) !== '작업'))) { 상태.열린 = null; 상태.쓰는줄 = null; }
-  const 알림 = [상태.알림, 코드알림, 상태.열쇠못남김].filter(Boolean).map((말) => `<p class="오류">${막기(말)}</p>`).join('');
+  const 알림 = [상태.알림, 코드알림].filter(Boolean).map((말) => `<p class="오류">${막기(말)}</p>`).join('');
   const 줄 = 줄들(), 펼친것 = 펼친줄들(줄);
   const { 위, 뷰어 } = 두칸();
   const 굴린자리 = 뷰어.scrollTop, 위굴린자리 = 위.scrollTop;
@@ -312,9 +289,8 @@ function 시각글() {
 }
 
 function 열쇠그리기() {
-  // 열쇠 파일을 못 읽었으면 그 까닭을 열쇠 넣기 화면 맨 위에 한 줄로 보인다(bp-백엔드) //
-  본문.innerHTML = (상태.열쇠알림 ? `<p class="오류">${막기(상태.열쇠알림)}</p>` : '') + `<div class="열쇠칸"><h2>GitHub 열쇠 넣기</h2>
-    <p class="안내">문서가 든 저장소는 비공개라, 사용자의 GitHub 열쇠(토큰)로 읽고 씁니다. 열쇠는 이 기기 안에만 둡니다${열쇠통로 ? ' — PC 앱은 Windows 암호 저장으로 감싸 앱 저장 폴더에 둡니다' : ''}.</p>
+  본문.innerHTML = `<div class="열쇠칸"><h2>GitHub 열쇠 넣기</h2>
+    <p class="안내">문서가 든 저장소는 비공개라, 사용자의 GitHub 열쇠(토큰)로 읽고 씁니다. 열쇠는 이 기기 브라우저 안에만 둡니다(모바일 앱만 열쇠를 씁니다 — PC 앱은 PC의 <code>git</code> 로그인을 씁니다).</p>
     <p class="안내">GitHub → Settings → Developer settings → Fine-grained tokens에서 만들고, 부서·프로젝트 저장소와 회장실 저장소(<code>yessoftbook</code>)·전역 환경 저장소(<code>claude-config</code>)를 고른 뒤 권한은 <b>Contents: Read and write</b> 하나만 줍니다. 회장실·전역 환경 저장소는 의회 박스가 법안을 갈 곳 파일과 맞대려고 읽기만 합니다. 상황판은 관리부 저장소의 의회 파일(<code>docs/assembly.md</code>)과 설계실 파일(<code>docs/설계실.md</code>)에만 적습니다.</p>
     <input id="열쇠" type="password" autocomplete="off" placeholder="github_pat_…">
     <p><button type="button" class="답단추" data-일="열쇠저장">넣고 읽기</button></p></div>`;
@@ -725,7 +701,7 @@ function 박스그리기() {
   const 수 = Object.keys(it.코멘트).length;
   const 안내 = 상태.알림 || (it.표시 ? `${it.표시} 찍힘 — 같은 단추를 다시 누르면 거둔다` : '') + (수 ? ` · 코멘트 ${수}개 — ${it.표시 ? '찍은 답에 딸려 AI가 반영한다' : '답 없이 단 코멘트는 물음이다'}` : '');
   // GitHub에 못 적었으면 답 단추 아래에 그 까닭 한 줄을 오류 모양으로 보인다(bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」) //
-  const 알림칸 = 못적음[법] ? `<span class="알림 오류">GitHub에 못 적었다 — ${막기(못적음[법])}</span>` : `<span class="알림">${막기(안내)}</span>`;
+  const 알림칸 = 못적음[법] ? `<span class="알림 오류">못 적었다 — ${막기(못적음[법])}</span>` : `<span class="알림">${막기(안내)}</span>`;
   // 갈 곳 파일을 못 읽었거나 맞댈 조를 못 찾았으면 박스 맨 위에 한 줄(읽는 중이면 안내 한 줄) //
   const 맞댐줄 = !맞댐 ? '' : 맞댐.알림 ? `<p class="오류 맞댐알림">${막기(맞댐.알림)}</p>` : 맞댐.안내 ? `<p class="안내 맞댐알림">${막기(맞댐.안내)}</p>` : '';
   박스.innerHTML = `${맞댐줄}<div class="박스머리"><span class="딱지 ${막기(종류)}">${막기(종류)}</span><h2>${꾸미기(it.이름)}</h2>
@@ -916,7 +892,7 @@ document.addEventListener('click', (e) => {
     const v = document.getElementById('열쇠').value.trim();
     if (!v || t.disabled) return;
     t.disabled = true;
-    (열쇠통로 ? 열쇠파일쓰기(v) : Promise.resolve(브라우저열쇠쓰기(v))).then(() => { 상태.열쇠알림 = ''; 시작(); });
+    브라우저열쇠쓰기(v); 시작();
     return;
   }
   // 폰의 설계 칩 — 뷰어에 설계 모듈 카드를 열고, 다시 누르면 작업 목록으로 돌아간다(bp-설계) //
@@ -1000,11 +976,16 @@ function 줄고정(키) {
   그리기();
 }
 
-// 열쇠를 읽어 문서를 읽기 시작한다 — PC 앱의 열쇠 통로는 기다리는 함수라 시작()도 기다린다(bp-백엔드) //
-async function 시작() {
-  const 열쇠 = await 열쇠읽기();
-  if (!열쇠) { 상태.통로 = null; 그리기(); return; }
-  상태.통로 = 통로만들기({ 열쇠, API, 기록: { log: 기록 } });
+// 문서를 읽기 시작한다 — PC 앱은 열쇠 없이 앱 본체의 문서 통로로 PC 폴더를 읽고, 모바일 앱은 브라우저 저장의 열쇠로 GitHub을 읽는다(bp-백엔드) //
+function 시작() {
+  if (PC문서통로있음(window)) {
+    상태.통로 = PC통로만들기(window.상황판, { log: 기록 });
+    기록('PC 앱 — 열쇠 없이 PC 폴더에서 읽는다');
+  } else {
+    const 열쇠 = 브라우저열쇠읽기();
+    if (!열쇠) { 상태.통로 = null; 그리기(); return; }
+    상태.통로 = 통로만들기({ 열쇠, API, 기록: { log: 기록 } });
+  }
   let 훑기 = false;
   try { 훑기 = sessionStorage.getItem(훑기열쇠) === '1'; sessionStorage.removeItem(훑기열쇠); }
   catch (e) { 기록('ERROR 저장소 다시 훑기 표시를 못 읽었다: ' + e.message); }
