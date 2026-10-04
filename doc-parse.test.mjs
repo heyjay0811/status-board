@@ -9,7 +9,7 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { 항목들, 항목머리, 항목분해, 필드분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 상태머리말읽기, 곳차례비교 } from './doc-parse.mjs';
+import { 항목들, 항목머리, 항목분해, 필드분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 부서인가, 설계문서읽기 } from './doc-parse.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -168,28 +168,49 @@ console.log('\n[항목분해 — 번호 없는 줄]');
 // 관리부가 없는 기계에서는 이 대목만 건너뛰고 건너뛴 것을 알린다. //
 const 관리부문서 = join(here, '..', 'management', 'docs');
 
-// ── 6-2. 곳의 차례 — 관리부 설계 `bp-상황판` 제8조 ③④⑨ ─────────── //
-console.log('\n[곳의 차례 — status.md 머리말의 type → order → 이름]');
+// ── 6-2. 부서 묶음 — 관리부 설계 `bp-부서프로젝트목록`의 「…부서·프로젝트 단추를 늘어놓고, 고른 곳을 그 아래 뷰어에 펼친다」 조 ── //
+console.log('\n[부서 묶음 — 부서인가()]');
 {
-  확인('머리말의 type·order를 읽는다', JSON.stringify(상태머리말읽기('---\ntype: 기타\norder: 2\nstart: 2026-01-01\n---\n# 본문\ntype: 개발')) === '{"종류":"기타","차례":2}', JSON.stringify(상태머리말읽기('---\ntype: 기타\norder: 2\n---')));
-  확인('type이 셋 가운데 하나가 아니면 미분류(「외주」)', 상태머리말읽기('---\ntype: 외주\n---').종류 === '미분류');
-  확인('머리말이 없거나 빈 글이면 미분류 · 차례 없음', JSON.stringify(상태머리말읽기('')) === '{"종류":"미분류","차례":null}' && 상태머리말읽기('# 제목만').종류 === '미분류');
-  확인('본문의 type: 줄은 머리말이 아니다', 상태머리말읽기('# 본문\n---\ntype: 개발\n---').종류 === '미분류');
-  const 곳 = (저장소, 종류, 차례 = null) => ({ 저장소, 종류, 차례 });
-  const 차례 = [곳('zeta', '지원'), 곳('b', '개발'), 곳('a', '개발'), 곳('c', '개발', 1), 곳('m', '미분류'), 곳('e', '기타')].sort(곳차례비교).map((x) => x.저장소).join(',');
-  확인('종류 묶음(개발 → 지원 → 기타 → 미분류) → order(작을수록 위, 비면 뒤) → 이름순', 차례 === 'c,a,b,zeta,e,m', 차례);
-  // 진짜 관리부 아래 여덟 곳의 status.md로 나올 차례 — 보고에 적는다 //
-  const 관리부폴더 = join(here, '..', 'management');
-  if (existsSync(관리부폴더)) {
-    const 곳들 = [['management', 관리부폴더], ['knowledge', join(관리부폴더, 'knowledge')], ['yessoft', join(관리부폴더, 'yessoft')]]
-      .concat(readdirSync(join(관리부폴더, 'projects')).map((n) => [n, join(관리부폴더, 'projects', n)]))
-      .filter(([, 폴더]) => existsSync(join(폴더, '.git')) && existsSync(join(폴더, '.claude')))
-      .map(([저장소, 폴더]) => ({ 저장소, ...상태머리말읽기(existsSync(join(폴더, 'docs', 'status.md')) ? readFileSync(join(폴더, 'docs', 'status.md'), 'utf8') : '') }));
-    console.log('     (진짜 status.md로 나올 줄 차례: ' + 곳들.sort(곳차례비교).map((x) => `${x.저장소}(${x.종류}${x.차례 === null ? '' : ' ' + x.차례})`).join(' → ') + ')');
+  const 참 = ['management', 'yessoft', 'knowledge', '의회', '설계실'].filter((x) => 부서인가(x));
+  확인('관리부·전략기획실·자료실·의회·설계실은 부서다', 참.length === 5, 참.join(','));
+  const 거짓 = ['1talk-app', 's36524-app', 'homepage', 'ilgongil-app', '1talk-app-auto-order', ''].filter((x) => !부서인가(x));
+  확인('일톡·모든예약 같은 그 밖의 곳은 프로젝트다', 거짓.length === 6, 거짓.join(','));
+}
+
+// ── 6-3. 설계 문서 — 관리부 설계 `bp-설계`의 「…모듈마다 카드로 펼쳐 보이고, 모듈마다 구현과 검증이 얼마나 됐는지 센다」 조 ── //
+console.log('\n[설계 문서 — 설계문서읽기()]');
+{
+  const 글 = '# 제목\n\n## 제1조 첫 조 | #설계\n[확정 1] 2026-10-04\n\n① 첫 항.\n🔧 구현 완료 | 2026-10-04 | [작업 1] — 근거\n☑ 검증 완료 | 2026-10-04\n② 둘째 항.\n`🔧 구현 완료 | 옛 줄`\n\n## 제2조 둘째 조 | #설계\n\n㉓ 스물셋째 항.\n🔧 구현 완료 | 2026-10-04 | [작업 2]\n㊿ 쉰째 항.\n```\n③ 코드 안 줄\n## 제9조 코드 안 조\n```\n';
+  const 읽음 = 설계문서읽기(글);
+  확인('「## 제K조」 줄마다 조 하나 — 코드블록 안 조 제목은 조가 아니다', 읽음.조수 === 2 && 읽음.조[1].제목.startsWith('제2조 둘째 조'), JSON.stringify(읽음.조.map((x) => x.제목)));
+  확인('㉓·㊿ 같은 원문자도 항이다 — 항 넷', 읽음.항수 === 4 && 읽음.조[1].항.map((h) => h.기호).join('') === '㉓㊿', JSON.stringify(읽음.조.map((x) => x.항.map((h) => h.기호))));
+  확인('🔧 구현 완료 줄이 바로 아래 붙은 항만 구현 — 백틱 옛 줄은 안 센다', 읽음.구현수 === 2 && 읽음.조[0].항[1].구현 === false, `구현 ${읽음.구현수}`);
+  확인('☑ 검증 완료 줄이 붙은 항만 검증', 읽음.검증수 === 1, `검증 ${읽음.검증수}`);
+  확인('항 글은 항 줄과 그 아래 줄을 글 그대로 담는다', 읽음.조[0].항[0].글 === '① 첫 항.\n🔧 구현 완료 | 2026-10-04 | [작업 1] — 근거\n☑ 검증 완료 | 2026-10-04', JSON.stringify(읽음.조[0].항[0].글));
+  확인('빈 글이어도 멈추지 않는다', 설계문서읽기('').조수 === 0);
+  // 실물 — 관리부 설계 문서마다 조 수가 「## 제K조」 줄 수와 같고, 항·🔧·☑ 수가 줄을 직접 센 수와 같은지 //
+  if (!existsSync(관리부문서)) console.log(`  (건너뜀: 관리부 문서 자리가 없다 — ${관리부문서})`);
+  else {
+    const 파일들 = readdirSync(관리부문서).filter((f) => /^bp-.+\.md$/.test(f));
+    let 조합 = 0;
+    for (const f of 파일들) {
+      const 원문 = readFileSync(join(관리부문서, f), 'utf8');
+      const 실 = 설계문서읽기(원문);
+      // 손으로 세는 것과 같은 자 — 줄 머리만 본다(이 문서들에는 코드블록이 없다) //
+      const 줄들 = 원문.split(/\r?\n/);
+      const 조줄 = 줄들.filter((l) => /^##\s+제\d+조/.test(l)).length;
+      const 항자리 = 줄들.map((l, i) => (/^[①-⑳㉑-㉟㊱-㊿]/.test(l) ? i : -1)).filter((i) => i >= 0);
+      const 아래 = (i) => { const 끝 = [...항자리, ...줄들.map((l, j) => (/^##\s/.test(l) ? j : -1)).filter((j) => j > i)].filter((j) => j > i).sort((a, b) => a - b)[0] ?? 줄들.length; return 줄들.slice(i + 1, 끝); };
+      const 구현 = 항자리.filter((i) => 아래(i).some((l) => l.startsWith('🔧 구현 완료'))).length;
+      const 검증 = 항자리.filter((i) => 아래(i).some((l) => l.startsWith('☑ 검증 완료'))).length;
+      확인(`${f}: 조 ${조줄} · 항 ${항자리.length} · 🔧 ${구현} · ☑ ${검증}`, 실.조수 === 조줄 && 실.항수 === 항자리.length && 실.구현수 === 구현 && 실.검증수 === 검증, `읽음 조 ${실.조수} · 항 ${실.항수} · 🔧 ${실.구현수} · ☑ ${실.검증수}`);
+      조합 += 실.조수;
+    }
+    console.log(`     (관리부 설계 ${파일들.length}모듈 · ${조합}조)`);
   }
 }
 
-// ── 7. 작업 파일 — 관리부 설계 `bp-상황판` 제13조 ③④⑤ · `rule-문서` 제10조 ⑪ · 제11조 ─────────── //
+// ── 7. 작업 파일 — bp-작업의 「상황판은 작업 제목을 누르면 그 작업의 작업 파일을 펼치고, 진행 현황의 지시를 누르면 그 지시의 보고를 펼친다」 · `rule-문서` 제10조 ⑪ · 제11조 ─────────── //
 console.log('\n[작업 파일 — 소제목과 지시·보고 짝]');
 {
   const 파일 = '# [작업 9] 시험\n\n### 무엇을 하나\n\n- 할 일\n\n### 결정할 사항\n\n없음\n\n### 구현 계획\n\n```\n### 코드 안 소제목\n지시 8 (코드 → 안, 2026-10-04) 예시\n```\n\n### 진행 현황\n\n'

@@ -10,7 +10,7 @@
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, copyFileSync } from 'node:fs';
 import { join, dirname, extname, relative, sep } from 'node:path';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
@@ -29,7 +29,7 @@ function 진짜저장소들() {
   return 표;
 }
 
-// 사본 만들기 — docs/ 바로 아래 .md, 작업 파일(docs/작업/*.md — bp-상황판 제13조), `.claude` 폴더가 있다는 표시만 옮긴다. //
+// 사본 만들기 — docs/ 바로 아래 .md, 작업 파일(docs/작업/*.md — bp-작업의 「상황판은 작업 제목을 누르면 그 작업의 작업 파일을 펼치고, 진행 현황의 지시를 누르면 그 지시의 보고를 펼친다」), `.claude` 폴더가 있다는 표시만 옮긴다. //
 const 뿌리 = mkdtempSync(join(tmpdir(), 'sb-dev-'));
 const 저장소들 = 진짜저장소들();
 for (const [이름, 폴더] of Object.entries(저장소들)) {
@@ -43,6 +43,22 @@ for (const [이름, 폴더] of Object.entries(저장소들)) {
     for (const f of readdirSync(작업)) if (f.endsWith('.md')) copyFileSync(join(작업, f), join(사본, 'docs', '작업', f));
   }
   if (existsSync(join(폴더, '.claude'))) { mkdirSync(join(사본, '.claude'), { recursive: true }); writeFileSync(join(사본, '.claude', 'settings.json'), '{}'); }
+  // [관리부 작업 443] 의회 박스가 맞댈 갈 곳 파일 — 저장소 규칙 파일(CLAUDE.md)도 옮긴다(관리부 설계 bp-의회 「의회 박스는 …맞대 바뀐 곳을 칠한다」 조) //
+  if (existsSync(join(폴더, 'CLAUDE.md'))) copyFileSync(join(폴더, 'CLAUDE.md'), join(사본, 'CLAUDE.md'));
+}
+// 회장실 저장소(yessoftbook — 회장실 CLAUDE.md)와 전역 환경 저장소(claude-config — 전역 규칙·경로 규칙·매 턴 규칙·스킬)도 사본으로 둔다. //
+//   두 저장소에는 `.claude` 표시를 두지 않는다 — 부서·프로젝트가 아니라 상황판 단추에 서지 않는다. //
+{
+  const 회장실 = join(관리부, '..');
+  if (existsSync(join(회장실, 'CLAUDE.md'))) { mkdirSync(join(뿌리, 'yessoftbook'), { recursive: true }); copyFileSync(join(회장실, 'CLAUDE.md'), join(뿌리, 'yessoftbook', 'CLAUDE.md')); 저장소들.yessoftbook = 회장실; }
+  const 전역 = process.env.SB_CLAUDE_CONFIG || join(homedir(), '.claude');
+  if (existsSync(join(전역, 'CLAUDE.md'))) {
+    const 사본 = join(뿌리, 'claude-config');
+    mkdirSync(사본, { recursive: true }); copyFileSync(join(전역, 'CLAUDE.md'), join(사본, 'CLAUDE.md'));
+    for (const 폴더 of ['rules', 'hooks']) if (existsSync(join(전역, 폴더))) { mkdirSync(join(사본, 폴더), { recursive: true }); for (const f of readdirSync(join(전역, 폴더))) if (f.endsWith('.md')) copyFileSync(join(전역, 폴더, f), join(사본, 폴더, f)); }
+    if (existsSync(join(전역, 'skills'))) for (const s of readdirSync(join(전역, 'skills'))) if (existsSync(join(전역, 'skills', s, 'SKILL.md'))) { mkdirSync(join(사본, 'skills', s), { recursive: true }); copyFileSync(join(전역, 'skills', s, 'SKILL.md'), join(사본, 'skills', s, 'SKILL.md')); }
+    저장소들['claude-config'] = 전역;
+  }
 }
 console.log(`[시험 서버] 사본을 만들었다 — ${Object.keys(저장소들).length}곳 → ${뿌리}`);
 
@@ -50,12 +66,12 @@ const 지문 = (글) => createHash('sha1').update(글).digest('hex');
 const 모든파일 = (폴더) => readdirSync(폴더, { withFileTypes: true }).flatMap((d) => d.isDirectory() ? 모든파일(join(폴더, d.name)) : [join(폴더, d.name)]);
 const 종류표 = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
-// 문서 읽기를 일부러 늦춘다(밀리초) — 화면이 기기에 둔 글로 먼저 그리는지 잰다(bp-상황판 제1조 ⑦) //
+// 문서 읽기를 일부러 늦춘다(밀리초) — 화면이 기기에 둔 글로 먼저 그리는지 잰다(bp-백엔드의 「상황판은 의회·설계실·작업과 확정된 설계는 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」) //
 const 읽기지연 = Number(process.env.SB_READ_DELAY_MS || 0);
 // 일부러 못 읽게 할 파일 — 경로에 이 조각(쉼표로 여럿)이 든 파일은 파일 목록에는 두고 읽기(GET)만 500을 돌려준다. //
-//   파일 목록에 있는데 못 읽을 때 화면이 무엇을 못 읽었는지 알리는지 잰다(bp-상황판 제13조 ② · 제7조 ②). //
+//   파일 목록에 있는데 못 읽을 때 화면이 무엇을 못 읽었는지 알리는지 잰다(bp-작업의 「상황판은 작업 제목을 누르면 그 작업의 작업 파일을 펼치고, 진행 현황의 지시를 누르면 그 지시의 보고를 펼친다」 · bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」). //
 const 못읽을것 = String(process.env.SB_READ_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
-// 열쇠가 못 보는 저장소 흉내 — 이 이름(쉼표로 여럿)의 저장소는 저장소 목록에서 빠지고 파일 목록·파일 읽기가 404다(bp-상황판 제1조 ⑤ · 제7조 ②). //
+// 열쇠가 못 보는 저장소 흉내 — 이 이름(쉼표로 여럿)의 저장소는 저장소 목록에서 빠지고 파일 목록·파일 읽기가 404다(bp-부서프로젝트목록의 「상황판은 의회와 작업은 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」 · bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」). //
 const 숨길저장소 = String(process.env.SB_HIDE || '').split(',').map((s) => s.trim()).filter(Boolean);
 // 못 읽게 할 화면 코드 파일 — 이 이름(쉼표로 여럿)의 화면 파일은 404다. 화면 모듈을 못 불러올 때 알리는지 잰다(제7조 ②). //
 const 못줄화면 = String(process.env.SB_SCREEN_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -98,7 +114,7 @@ const 서버 = createServer((요청, 응답) => {
           return 답(500, { message: '시험 서버가 일부러 못 읽게 한 파일' });
         }
         const 글 = readFileSync(파일);
-        // 진짜 GitHub처럼 지문(ETag)을 붙이고, 「이 지문과 같으면 보내지 마라」면 304만 보낸다(bp-상황판 제1조 ⑦) //
+        // 진짜 GitHub처럼 지문(ETag)을 붙이고, 「이 지문과 같으면 보내지 마라」면 304만 보낸다(bp-백엔드의 「상황판은 의회·설계실·작업과 확정된 설계는 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」) //
         const etag = `"${지문(글)}"`;
         if (요청.headers['if-none-match'] === etag) { 응답.writeHead(304, { ETag: etag }); 응답.end(); return; }
         응답.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', ETag: etag });
@@ -106,7 +122,7 @@ const 서버 = createServer((요청, 응답) => {
         return;
       }
       if (요청.method === 'PUT') {
-        // 쓰기만 막히는 열쇠 — 열쇠가 「wrong」으로 시작하면 쓰기(PUT)에만 401을 돌려준다(bp-상황판 제10조 ⑧ 시험). //
+        // 쓰기만 막히는 열쇠 — 열쇠가 「wrong」으로 시작하면 쓰기(PUT)에만 401을 돌려준다(bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」 시험). //
         //   이 서버는 어떤 열쇠든 읽기를 받아 주고, 진짜 GitHub에서 열쇠를 틀리면 읽기부터 막혀 찍을 화면이 안 서기 때문이다. //
         // ★표지는 영문이다 — 브라우저와 Node의 fetch는 요청 머리(Authorization)에 한글이 들면 요청을 보내지 않고 던진다. //
         if (/^Bearer wrong/.test(요청.headers.authorization || '')) {

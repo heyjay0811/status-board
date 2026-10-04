@@ -1,5 +1,5 @@
-/* 상황판 화면 모양 — 폰 폭부터 맞추고, 900px 이상이면 목록과 박스를 두 칸으로 벌린다(설계 제7조 ③ · 제6조 ① · 제12조 ③). */
-/* 바탕·글·흐린·선·칸·머리·강조·글꼴은 theme.css(PC 앱과 한 벌)에 있다(제12조 ①). 여기에는 이 화면에만 있는 색을 둔다. */
+/* 상황판 화면 모양 — 폰 폭부터 맞추고, 900px 이상이면 목록과 박스를 두 칸으로 벌린다(bp-프론트엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」 · bp-의회의 「상황판 의회 화면은 조문을 팝업 박스 하나로 열고, 갈 자리와 바뀔 내용을 함께 보여준다」 · bp-프론트엔드의 「상황판 PC 앱과 모바일 앱은 모양을 한 벌로 쓴다」). */
+/* 바탕·글·흐린·선·칸·머리·강조·글꼴은 theme.css(PC 앱과 한 벌)에 있다(bp-프론트엔드의 「상황판 PC 앱과 모바일 앱은 모양을 한 벌로 쓴다」). 여기에는 이 화면에만 있는 색을 둔다. */
 :root {
   --초록: rgba(48,164,108,.16); --초록글: #1a7f37; --빨강: rgba(229,72,77,.14); --빨강글: #cf222e; --노랑: #fff8c5;
   --박스폭: 42em;
@@ -11,59 +11,81 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--바탕); color: var(--글); }
-body { font: 15px/1.6 var(--글꼴); padding-bottom: env(safe-area-inset-bottom); }
+/* [관리부 작업 443] bp-프론트엔드 「상황판 PC 앱과 모바일 앱은 모양을 한 벌로 쓴다」 조 — 창 전체는 굴리지 않는다.
+   몸은 화면 높이에 맞춘 세로 칸이고, 머리 줄과 위 칸(단추 줄·차트)은 제자리에 두고 그 아래 뷰어 칸만 따로 굴린다.
+   ★전에는 창 전체가 한 덩어리로 굴러, 끝까지 내리면 머리 줄 아래의 단추 줄이 밀려 올라가고 아래는 끝까지 안 내려갔다. */
+html, body { height: 100%; }
+body { font: 15px/1.6 var(--글꼴); display: flex; flex-direction: column; overflow: hidden; }
 code { font: 0.92em ui-monospace, Consolas, monospace; background: var(--칸); padding: 0 3px; border-radius: 4px; }
 button { font: inherit; color: inherit; }
 a { color: var(--강조); }
 
-/* 머리 줄 — PC 앱 진행 현황처럼 앱 이름을 둔다(제12조 ②). 탭은 두지 않는다(제2조 ①).
-   좁은 화면에서 시각이 길면 다음 줄로 내린다 — 박스는 이 줄 아래부터 덮어 「적는 중」이 늘 보인다(제10조 ⑦). */
-.머리 { position: sticky; top: 0; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 16px; background: var(--바탕); border-bottom: 1px solid var(--선); }
+/* 머리 줄 — PC 앱 진행 현황처럼 앱 이름을 둔다(bp-프론트엔드의 「상황판 PC 앱과 모바일 앱은 모양을 한 벌로 쓴다」). 탭은 두지 않는다(bp-부서프로젝트목록의 「상황판은 PC 앱과 폰 모두 부서·프로젝트 단추를 늘어놓고, 고른 곳을 그 아래 뷰어에 펼친다」).
+   좁은 화면에서 시각이 길면 다음 줄로 내린다 — 박스는 이 줄 아래부터 덮어 「적는 중」이 늘 보인다(bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」). */
+.머리 { flex: none; position: relative; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 16px; background: var(--바탕); border-bottom: 1px solid var(--선); }
 .앱이름 { font-size: 18px; font-weight: 700; }
 .시각 { order: 3; flex-basis: 100%; font-size: 12px; color: var(--흐린); }
 #다시읽기 { margin-left: auto; }
 .작은단추 { border: 1px solid var(--선); background: var(--칸); color: var(--글); border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
 .작은단추:hover { border-color: var(--강조); color: var(--강조); }
 
-#본문 { padding: 12px 16px; max-width: 1400px; margin: 0 auto; }
+#본문 { flex: 1 1 auto; min-height: 0; width: 100%; max-width: 1400px; margin: 0 auto; overflow: auto; padding: 12px 16px; }
+/* 위 칸과 뷰어 칸이 서면 본문은 굴리지 않고 둘을 세로로 놓는다 — 뷰어 칸만 굴러간다(bp-프론트엔드) */
+#본문:has(> .위칸) { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.위칸 { flex: none; max-height: 70%; overflow: auto; padding: 8px 16px 0; border-bottom: 1px solid var(--선); }
+.뷰어칸 { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 10px 16px calc(16px + env(safe-area-inset-bottom)); }
 .안내 { color: var(--흐린); }
 .오류 { color: var(--빨강글); background: var(--빨강); padding: 8px 10px; border-radius: 6px; }
 
-/* 줄 목록 — 부서·프로젝트마다 한 줄, 관리부 아래에 의회·설계실 줄(제2조 ①). 줄 옆에 수 하나(⑧).
-   펼침 단추로 펼치고 접으며, 고정 단추로 다른 줄을 골라도 접히지 않게 한다(⑬⑭). */
-.줄묶음 { border-bottom: 1px solid var(--선); scroll-margin-top: calc(var(--머리높이, 52px) + 4px); }
-.곳줄 { display: flex; align-items: center; gap: 4px; }
-.곳줄.딸림 { padding-left: 22px; }
-.펼침단추 { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; text-align: left; background: none; border: 0; padding: 12px 4px; cursor: pointer; }
-.펼침단추:hover .이름 { color: var(--강조); }
-.화살표 { width: 1em; color: var(--흐린); }
-.곳줄 .이름 { font-weight: 600; overflow-wrap: anywhere; }
-.곳줄.펼침 .이름 { color: var(--강조); }
 .수 { min-width: 1.8em; padding: 0 7px; border-radius: 10px; background: var(--칸); border: 1px solid var(--선); font-size: 12px; text-align: center; color: var(--글); white-space: nowrap; }
 .고정단추 { flex: none; border: 1px solid transparent; background: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; filter: grayscale(1); opacity: .45; }
 .고정단추:hover { opacity: .8; border-color: var(--선); }
 .고정단추.켜짐 { filter: none; opacity: 1; border-color: var(--강조); background: color-mix(in srgb, var(--강조) 12%, transparent); }
 .줄몸 { padding: 0 0 14px; }
-/* GitHub에서 그 곳 저장소를 못 읽은 줄의 까닭 — 줄을 지우지 않고 글로 단다(제1조 ⑤ · 제7조 ②) */
-.줄까닭 { font-size: 12px; color: var(--빨강글); background: var(--빨강); padding: 1px 8px; border-radius: 6px; overflow-wrap: anywhere; }
+.화살표 { width: 1em; color: var(--흐린); }
 
-/* [관리부 작업 443] 지시 14·16 — PC 앱의 「프로젝트」 단추 줄. 옛 PC 앱 진행 현황의 고르는 줄(.folded) 모양 그대로 —
-   둥근 단추가 한 줄로 늘어서고, 고른 곳은 강조색으로 채운다. 단추 옆 📌는 고정(제2조 ⑭). 모바일 앱은 쓰지 않는다. */
-.곳단추줄 { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; padding: 8px 4px; margin: 0 0 10px; border-bottom: 1px solid var(--선); }
-.곳단추말 { font-size: 11px; color: var(--흐린); margin-right: 2px; }
-.곳단추묶음 { display: inline-flex; align-items: center; gap: 1px; }
-.곳단추묶음.딸림 { margin-left: -4px; }
-.곳단추 { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 11px; border: 1px solid var(--선); background: var(--바탕); color: var(--흐린); border-radius: 14px; cursor: pointer; }
+/* [관리부 작업 443] bp-부서프로젝트목록 「상황판은 PC 앱과 폰 모두 부서·프로젝트 단추를 늘어놓고…」 조 — 「프로젝트」 단추 줄.
+   PC 앱과 폰이 같다. 둥근 단추가 늘어서고 고른 곳은 강조색으로 채우며, 단추 옆 📌는 고정이다.
+   단추는 「부서」 묶음과 「프로젝트」 묶음으로 나뉘고, 두 묶음 사이에 칸막이(선)와 묶음 이름표(작은 글자)를 둔다 — 색으로 가르지 않는다
+   (차트가 종류를 이미 색으로 보여, 묶음까지 칠하면 한 색이 두 뜻을 갖는다).
+   bp-프론트엔드 — 좁은 화면에서는 옆으로 밀지 않고 여러 줄로 접어 모든 단추가 한눈에 보이게 하고, 두 묶음을 위아래로 놓는다. */
+.곳단추줄 { display: flex; gap: 6px 10px; align-items: center; flex-wrap: wrap; padding: 4px 0 8px; }
+.단추묶음 { display: flex; flex-wrap: wrap; gap: 6px 7px; align-items: center; min-width: 0; }
+.묶음이름 { font-size: 11px; font-weight: 600; color: var(--흐린); margin-right: 2px; white-space: nowrap; }
+.묶음칸막이 { align-self: stretch; width: 0; border-left: 1px solid var(--선); margin: 0 4px; }
+.곳단추묶음 { display: inline-flex; align-items: center; gap: 1px; max-width: 100%; }
+.곳단추 { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 11px; border: 1px solid var(--선); background: var(--바탕); color: var(--흐린); border-radius: 14px; cursor: pointer; min-width: 0; }
+.곳단추 .이름 { overflow-wrap: anywhere; }
 .곳단추:hover { border-color: var(--강조); color: var(--강조); }
 .곳단추묶음.켜짐 .곳단추 { background: var(--강조); border-color: var(--강조); color: #fff; }
 .곳단추 .수 { min-width: 0; padding: 0 5px; background: transparent; border: 0; font-size: 11px; color: inherit; opacity: .85; }
-.곳단추묶음.딸림 .곳단추 { border-style: dashed; }
 .곳단추묶음 .고정단추 { padding: 2px 4px; font-size: 11px; }
 .못읽음표 { color: var(--빨강글); font-weight: 700; }
 .곳단추묶음.켜짐 .못읽음표 { color: #fff; }
+@media (max-width: 899px) {
+  .곳단추줄 { flex-direction: column; align-items: stretch; }
+  .묶음칸막이 { width: auto; border-left: 0; border-top: 1px solid var(--선); margin: 0; }
+}
 .곳펼침 { border-bottom: 1px solid var(--선); margin-bottom: 12px; }
 .곳펼침제목 { font-size: 15px; margin: 6px 0 8px; color: var(--강조); }
-.곳줄.딸림 + .줄몸 { padding-left: 22px; }
+/* 폰의 설계 칩 — 뷰어의 작업 목록 위(bp-설계) */
+.칩줄 { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; }
+.설계칩 { font-size: 12px; padding: 2px 10px; border-radius: 12px; border: 1px solid var(--선); background: var(--칸); color: var(--글); cursor: pointer; }
+.설계칩.켜짐 { border-color: var(--강조); color: var(--강조); font-weight: 600; }
+/* 설계 모듈 카드 — 환경 목록 카드와 같은 모양(테두리·머리 바탕·▸)으로 늘어선다. 카드 → 조 제목 → 항(bp-설계) */
+.설계카드들 { display: flex; flex-direction: column; gap: 6px; }
+details.설계카드 { border: 1px solid var(--선); background: var(--머리); border-radius: 9px; }
+details.설계카드 > summary, details.설계조 > summary { padding: 8px 12px; cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+details.설계카드 > summary::-webkit-details-marker, details.설계조 > summary::-webkit-details-marker { display: none; }
+details.설계카드 > summary::before, details.설계조 > summary::before { content: '▸'; color: var(--흐린); font-size: 11px; transition: transform .15s; }
+details.설계카드[open] > summary::before, details.설계조[open] > summary::before { transform: rotate(90deg); }
+.설계카드이름 { font-weight: 600; font-size: 13.5px; overflow-wrap: anywhere; }
+.설계진척 { margin-left: auto; color: var(--흐린); font-size: 12px; white-space: nowrap; }
+.설계오류 { flex-basis: 100%; font-size: 12px; padding: 4px 8px; }
+details.설계조 { margin: 0 10px 6px; border-top: 1px solid var(--선); background: var(--바탕); border-radius: 6px; }
+details.설계조 > summary { font-size: 13.5px; font-weight: 600; }
+.설계항들 { padding: 2px 12px 10px 24px; }
+.설계항 { padding: 4px 0; border-bottom: 1px dashed var(--선); }
 
 /* 목록 */
 details.자리큰 > summary { font-weight: 700; padding: 8px 0; cursor: pointer; }
@@ -79,7 +101,7 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .딱지.신설, .딱지.추가 { border-color: var(--새것); color: var(--새것); font-weight: 600; }
 .딱지.변경 { border-color: var(--바꿈); color: var(--바꿈); font-weight: 600; }
 .딱지.삭제, .딱지.제거 { border-color: var(--지움); color: var(--지움); font-weight: 600; }
-/* 지우면 사본이 남지 않는 항 — 다른 삭제 항과 갈라 보이게 채운 빨강(제6조 ⑭) */
+/* 지우면 사본이 남지 않는 항 — 다른 삭제 항과 갈라 보이게 채운 빨강(bp-의회의 「상황판 의회 화면은 조문을 팝업 박스 하나로 열고, 갈 자리와 바뀔 내용을 함께 보여준다」) */
 .딱지.사라짐 { border-color: var(--지움); background: var(--지움); color: #fff; font-weight: 700; }
 .자리딱지 { display: inline-block; font-size: 12px; margin-top: 4px; padding: 0 7px; border-radius: 6px; font-weight: 600;
   color: var(--강조); background: color-mix(in srgb, var(--강조) 12%, transparent); border: 1px solid color-mix(in srgb, var(--강조) 40%, transparent); }
@@ -87,10 +109,12 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .상태줄 { display: block; font-size: 13px; color: var(--흐린); margin-top: 2px; }
 .상태줄 b { color: var(--글); font-weight: 600; }
 
-/* 박스 — 좁은 화면은 머리 줄 아래 화면 전체, 넓은 화면은 그 줄의 목록 옆 칸(제6조 ① · 제10조 ⑦). 한 줄 한글 마흔 자 남짓(제6조 ②). */
+/* 박스 — 좁은 화면은 머리 줄 아래 화면 전체, 넓은 화면은 그 줄의 목록 옆 칸(bp-의회의 「상황판 의회 화면은 조문을 팝업 박스 하나로 열고, 갈 자리와 바뀔 내용을 함께 보여준다」 · bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」). 한 줄 한글 마흔 자 남짓(bp-의회의 「상황판 의회 화면은 조문을 팝업 박스 하나로 열고, 갈 자리와 바뀔 내용을 함께 보여준다」). */
 .박스덮개 { position: fixed; top: var(--머리높이, 0px); left: 0; right: 0; bottom: 0; z-index: 10; background: var(--바탕); overflow: auto; }
 .박스 { max-width: var(--박스폭); margin: 0 auto; padding: 12px 16px 96px; }
 .박스머리 { display: flex; gap: 8px; align-items: flex-start; }
+/* 갈 곳 파일을 못 읽었거나 고칠 조를 못 찾았다는 박스 맨 위 한 줄(bp-의회 「의회 박스는 …맞대 바뀐 곳을 칠한다」 조) */
+.맞댐알림 { margin: 0 0 8px; font-size: 13px; }
 .박스머리 h2 { flex: 1; font-size: 16px; margin: 0; overflow-wrap: anywhere; }
 .박스몸 { margin-top: 10px; }
 .앞글 { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; padding: 2px 0; }
@@ -98,7 +122,7 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .항 .기호 { font-weight: 700; margin-right: 4px; }
 .항.흐림 { opacity: .5; }
 .될 { background: var(--초록); border-radius: 4px; padding: 4px 6px; }
-/* 생길 파일 미리보기 — 스킬·담당·훅 법안(제6조 ㉓). 머리 칸 표 · 마크다운 본문 · 코드 칸. */
+/* 생길 파일 미리보기 — 스킬·담당·훅 법안(bp-의회의 「상황판 의회 화면은 조문을 팝업 박스 하나로 열고, 갈 자리와 바뀔 내용을 함께 보여준다」). 머리 칸 표 · 마크다운 본문 · 코드 칸. */
 .미리보기 { font-size: 14px; padding: 8px 10px; overflow-wrap: anywhere; }
 .머리칸 { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 13px; }
 .머리칸 th { text-align: left; white-space: nowrap; padding: 3px 8px 3px 0; color: var(--흐린); font-weight: 600; vertical-align: top; }
@@ -134,13 +158,13 @@ mark { background: var(--노랑); color: inherit; }
 .답단추 { min-width: 96px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--선); background: var(--칸); cursor: pointer; font-weight: 600; }
 .답단추.찍힘 { border-color: var(--강조); color: var(--강조); outline: 2px solid var(--강조); }
 .알림 { font-size: 12px; color: var(--흐린); flex-basis: 100%; text-align: center; }
-/* GitHub에 못 적었다는 한 줄 — 답 단추 아래에 오류 모양으로(제10조 ⑧) */
+/* GitHub에 못 적었다는 한 줄 — 답 단추 아래에 오류 모양으로(bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」) */
 .알림.오류 { color: var(--빨강글); background: var(--빨강); padding: 6px 10px; border-radius: 6px; text-align: left; }
-/* 적는 동안 막은 단추(제10조 ⑥) */
+/* 적는 동안 막은 단추(bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」) */
 .답단추:disabled, .작은단추:disabled, .달기:disabled { opacity: .55; cursor: progress; }
 
 .본문글 { white-space: pre-wrap; overflow-wrap: anywhere; max-width: var(--박스폭); font-size: 14px; }
-/* 작업 파일 — 소제목을 파일 차례대로, 진행 현황은 지시 목록(제13조 ③④⑤) */
+/* 작업 파일 — 소제목을 파일 차례대로, 진행 현황은 지시 목록(bp-작업의 「상황판은 작업 제목을 누르면 그 작업의 작업 파일을 펼치고, 진행 현황의 지시를 누르면 그 지시의 보고를 펼친다」) */
 .작업절 { font-size: 15px; margin: 18px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--선); }
 .지시목록 { display: flex; flex-direction: column; }
 .지시줄 { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px dashed var(--선); padding: 8px 2px; cursor: pointer; font-size: 14px; }
@@ -150,19 +174,29 @@ mark { background: var(--노랑); color: inherit; }
 .열쇠칸 { max-width: 30em; }
 .열쇠칸 input { width: 100%; font: inherit; padding: 8px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); color: var(--글); }
 
-/* 펼친 줄 안의 목록 칸과 박스 칸 — 좁은 화면은 박스 칸을 숨기고 박스를 머리 줄 아래 화면 전체로 연다(제6조 ①) */
+/* 펼친 줄 안의 목록 칸과 박스 칸 — 좁은 화면은 박스 칸을 숨기고 박스를 머리 줄 아래 화면 전체로 연다(bp-의회의 「상황판 의회 화면은 조문을 팝업 박스 하나로 열고, 갈 자리와 바뀔 내용을 함께 보여준다」) */
 .박스칸 { display: none; }
 
-/* 넓은 화면 — 펼친 줄 안에서 목록 칸과 박스 칸이 화면 폭을 나눠 채운다(제12조 ③).
-   박스 칸은 목록 길이만큼 늘어나고, 그 안의 박스와 안내는 머리 줄 아래에 붙어 따라 내려온다. */
+/* 넓은 화면 — 뷰어 안에서 목록 칸과 박스 칸이 화면 폭을 나눠 채운다(bp-프론트엔드).
+   [관리부 작업 443] bp-프론트엔드 — 박스 칸은 목록 칸을 굴려도 굴러가는 뷰어 칸 맨 위(top: 0)에 붙어 화면 안에 남고, 높이는 화면에
+   보이는 뷰어 칸 높이(--뷰어높이 — app.mjs 뷰어높이맞추기())를 넘지 않으며, 박스 글이 길면 박스 칸 안에서만 따로 굴린다.
+   답 단추 칸(.박스발)은 박스 칸 아래에 붙은 채로 둔다. 목록 칸의 격자 칸(.박스칸)은 목록 높이만큼 늘어나 붙을 자리를 내준다.
+   ★전에는 창 전체가 굴러 붙는 기준이 창 맨 위였고, 목록 맨 아래의 안을 열면 박스 칸이 화면 밖으로 밀렸다. */
 @media (min-width: 900px) {
   .시각 { order: 0; flex-basis: auto; margin-left: auto; }
   #다시읽기 { margin-left: 0; }
   #본문 { max-width: none; padding: 14px 24px; }
+  .위칸 { padding: 8px 24px 0; }
+  .뷰어칸 { padding: 12px 24px 0; }
+  /* 맨 아래 곳의 목록이 뷰어 칸 끝에 닿게 한다 — 아래 여백이 남으면 끝까지 굴렸을 때 붙은 박스 칸이 그만큼 위로 밀려 머리가 가린다 */
+  .뷰어칸 > .곳펼침:last-child { margin-bottom: 0; border-bottom: 0; }
+  .뷰어칸 > .곳펼침:last-child > .줄몸 { padding-bottom: 0; }
   .두칸 { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; }
   .박스칸 { display: block; min-width: 0; }
-  .빈칸 { display: flex; align-items: center; justify-content: center; position: sticky; top: calc(var(--머리높이, 52px) + 10px); min-height: 240px; border: 1px dashed var(--선); border-radius: 8px; color: var(--흐린); font-size: 14px; }
-  .박스덮개.옆칸 { position: sticky; top: calc(var(--머리높이, 52px) + 4px); inset: auto; z-index: 1; max-height: calc(100vh - var(--머리높이, 52px) - 12px); border-left: 1px solid var(--선); }
+  .빈칸 { display: flex; align-items: center; justify-content: center; position: sticky; top: 0; min-height: 240px; border: 1px dashed var(--선); border-radius: 8px; color: var(--흐린); font-size: 14px; }
+  /* ★inset(top·right·bottom·left를 한꺼번에 정하는 줄임 이름)을 top보다 먼저 적는다 — 전에는 top 뒤에 inset: auto를 적어 top이
+     auto로 되돌아가 sticky가 한 번도 걸리지 않았고, 그래서 목록을 내리면 박스 칸이 화면 밖으로 밀렸다(2026-10-04 잼). */
+  .박스덮개.옆칸 { position: sticky; inset: auto; top: 0; z-index: 1; max-height: calc(var(--뷰어높이, 70vh) - 4px); border-left: 1px solid var(--선); }
   .박스덮개.옆칸 .박스 { padding-bottom: 12px; }
   .박스덮개.옆칸 .박스발 { position: sticky; bottom: 0; }
   .닫기 { display: none; }

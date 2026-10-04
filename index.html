@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2563eb">
 <title>상황판</title>
-<!-- 모양 한 벌 — PC 앱도 이 파일을 읽는다(설계 제12조 ①) -->
+<!-- 모양 한 벌 — PC 앱도 이 파일을 읽는다(bp-프론트엔드의 「상황판 PC 앱과 모바일 앱은 모양을 한 벌로 쓴다」) -->
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="app.css">
-<!-- 폰에서 「홈 화면에 추가」하면 앱처럼 열린다(설계 제7조 ③) -->
+<!-- 폰에서 「홈 화면에 추가」하면 앱처럼 열린다(bp-프론트엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」) -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
-<!-- 상황판 — 부서·프로젝트 줄이 늘어선 목록 화면 하나(관리부 설계 `bp-상황판` 제2조 · 제6조 · 제7조 ③ · 제10조 · 제11조). -->
-<!-- 탭과 홈은 두지 않는다 — 무엇을 보든 그 곳 줄을 펼쳐 그 자리에서 본다(제2조 ①). -->
+<!-- 상황판 — 부서·프로젝트 줄이 늘어선 목록 화면 하나(bp-부서프로젝트목록의 「상황판은 PC 앱과 폰 모두 부서·프로젝트 단추를 늘어놓고, 고른 곳을 그 아래 뷰어에 펼친다」 · bp-의회의 「상황판 의회 화면은 조문을 팝업 박스 하나로 열고, 갈 자리와 바뀔 내용을 함께 보여준다」 · bp-프론트엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」 · bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」 · bp-설계실의 「상황판 설계실 화면은 관리부 설계실 하나의 설계안을 갈 곳마다 묶어 의회 화면과 같은 박스로 열고, 설계안마다 맞는 답 둘을 찍는다」). -->
+<!-- 탭과 홈은 두지 않는다 — 무엇을 보든 그 곳 줄을 펼쳐 그 자리에서 본다(bp-부서프로젝트목록의 「상황판은 PC 앱과 폰 모두 부서·프로젝트 단추를 늘어놓고, 고른 곳을 그 아래 뷰어에 펼친다」). -->
 <!-- PC 앱과 모바일 앱이 이 한 벌을 쓴다(PC 앱은 관리부 tools/progress.mjs가 같은 머리 줄·본문을 세우고 app.mjs를 싣는다). -->
 <!-- 문서는 GitHub에서 열쇠로 읽고, 찍은 답은 GitHub에 커밋으로 적는다. -->
 <header class="머리">
@@ -26,7 +26,7 @@
 </header>
 <main id="본문"><p class="안내">읽는 중…</p></main>
 <div class="박스덮개" id="박스덮개" hidden><section class="박스" id="박스" aria-live="polite"></section></div>
-<!-- 화면 코드는 싣개가 싣는다 — 부품을 못 읽으면 「읽는 중…」에 멈추지 않고 무엇을 못 읽었는지 본문에 알린다(설계 제7조 ②) -->
+<!-- 화면 코드는 싣개가 싣는다 — 부품을 못 읽으면 「읽는 중…」에 멈추지 않고 무엇을 못 읽었는지 본문에 알린다(bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」) -->
 <script src="load-app.js"></script>
 </body>
 </html>
