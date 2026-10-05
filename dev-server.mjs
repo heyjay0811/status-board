@@ -66,7 +66,7 @@ const 지문 = (글) => createHash('sha1').update(글).digest('hex');
 const 모든파일 = (폴더) => readdirSync(폴더, { withFileTypes: true }).flatMap((d) => d.isDirectory() ? 모든파일(join(폴더, d.name)) : [join(폴더, d.name)]);
 const 종류표 = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
-// 문서 읽기를 일부러 늦춘다(밀리초) — 화면이 기기에 둔 글로 먼저 그리는지 잰다(bp-백엔드의 「상황판은 의회·설계실·작업과 확정된 설계는 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」) //
+// 문서 읽기를 일부러 늦춘다(밀리초) — 화면이 기기에 둔 글로 먼저 그리는지 잰다(bp-백엔드의 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」) //
 const 읽기지연 = Number(process.env.SB_READ_DELAY_MS || 0);
 // 일부러 못 읽게 할 파일 — 경로에 이 조각(쉼표로 여럿)이 든 파일은 파일 목록에는 두고 읽기(GET)만 500을 돌려준다. //
 //   파일 목록에 있는데 못 읽을 때 화면이 무엇을 못 읽었는지 알리는지 잰다(bp-작업의 「상황판은 작업 제목을 누르면 그 작업의 작업 파일을 펼치고, 진행 현황의 지시를 누르면 그 지시의 보고를 펼친다」 · bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」). //
@@ -114,7 +114,7 @@ const 서버 = createServer((요청, 응답) => {
           return 답(500, { message: '시험 서버가 일부러 못 읽게 한 파일' });
         }
         const 글 = readFileSync(파일);
-        // 진짜 GitHub처럼 지문(ETag)을 붙이고, 「이 지문과 같으면 보내지 마라」면 304만 보낸다(bp-백엔드의 「상황판은 의회·설계실·작업과 확정된 설계는 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」) //
+        // 진짜 GitHub처럼 지문(ETag)을 붙이고, 「이 지문과 같으면 보내지 마라」면 304만 보낸다(bp-백엔드의 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」) //
         const etag = `"${지문(글)}"`;
         if (요청.headers['if-none-match'] === etag) { 응답.writeHead(304, { ETag: etag }); 응답.end(); return; }
         응답.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', ETag: etag });
@@ -122,7 +122,7 @@ const 서버 = createServer((요청, 응답) => {
         return;
       }
       if (요청.method === 'PUT') {
-        // 쓰기만 막히는 열쇠 — 열쇠가 「wrong」으로 시작하면 쓰기(PUT)에만 401을 돌려준다(bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」 시험). //
+        // 쓰기만 막히는 열쇠 — 열쇠가 「wrong」으로 시작하면 쓰기(PUT)에만 401을 돌려준다(bp-결재의 「상황판은 찍은 답을 그 안이 있는 의회 파일이나 설계실 파일에 바로 한 번 적고, 못 적으면 멈춘다」 시험). //
         //   이 서버는 어떤 열쇠든 읽기를 받아 주고, 진짜 GitHub에서 열쇠를 틀리면 읽기부터 막혀 찍을 화면이 안 서기 때문이다. //
         // ★표지는 영문이다 — 브라우저와 Node의 fetch는 요청 머리(Authorization)에 한글이 들면 요청을 보내지 않고 던진다. //
         if (/^Bearer wrong/.test(요청.headers.authorization || '')) {

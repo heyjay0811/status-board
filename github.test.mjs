@@ -1,5 +1,5 @@
 // GitHub 통로 `github.mjs`의 시험 — 메모리 안의 가짜 GitHub으로 돌리고, `--live`를 붙이면 공개 저장소를 실제로 읽는다. //
-// 따르는 설계: bp-백엔드의 「상황판은 의회·설계실·작업과 확정된 설계는 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」 · bp-부서프로젝트목록의 「상황판은 의회와 작업은 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」 · bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」 · bp-백엔드의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」 · bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」 //
+// 따르는 설계: bp-백엔드의 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」 · bp-부서프로젝트목록의 「상황판은 의회와 작업은 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」 · bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」 · bp-백엔드의 「문서 저장소는 비공개로 두고, 상황판은 관리부 의회 파일과 곳마다의 설계실 파일에만 적는다」 · bp-결재의 「상황판은 찍은 답을 그 안이 있는 의회 파일이나 설계실 파일에 바로 한 번 적고, 못 적으면 멈춘다」 //
 import { 통로만들기, 적어도됨 } from './github.mjs';
 import { 표시붙인글 } from './doc-mark.mjs';
 
@@ -60,9 +60,9 @@ console.log('[github 시험] START');
 { // 쓰기 — 한 번 읽고 한 번 적어 커밋 하나 //
   const 저장소들 = { management: { 'docs/assembly.md': { 글: 의회, sha: 's0' } } };
   const g = 가짜GitHub(저장소들); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
-  const r = await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 표시붙인글(글, '어떤 법안', '신설', '2026-09-29'), '상황판: 어떤 법안에 신설');
+  const r = await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 표시붙인글(글, '어떤 법안', '승인', '2026-09-29'), '상황판: 어떤 법안에 승인');
   const 끝글 = 저장소들.management['docs/assembly.md'].글;
-  확인('찍은 답이 적힌다', 끝글.includes('> 📌 🆕 **신설** | 2026-09-29'));
+  확인('찍은 답이 적힌다', 끝글.includes('> 📌 **승인** | 2026-09-29'));
   확인('커밋 하나를 돌려준다', r.바뀜 && r.커밋.startsWith('c0ffee'));
   확인('한 번 읽고 한 번 적는다(GET 하나 · PUT 하나)', g.기록.filter((x) => x.startsWith('GET')).length === 1 && g.기록.filter((x) => x.startsWith('PUT')).length === 1, g.기록.join(' / '));
   // ★적은 뒤 파일을 다시 읽지 않아도 되게, 커밋 응답에서 적은 글·새 지문·커밋 시각을 돌려준다(찍기가 GitHub을 두 번만 오간다) //
@@ -76,12 +76,12 @@ console.log('[github 시험] START');
   const 끼어들기 = { 남은: 1, 바꾸기: (글) => 글 + '\n## 다른 기기가 올린 법안 | #규칙 | 소속: 전역 규칙\n' };
   const g = 가짜GitHub(저장소들, { 끼어들기 }); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
   let 던짐 = '';
-  try { await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 표시붙인글(글, '어떤 법안', '신설', '2026-09-29'), '상황판: 어떤 법안에 신설'); }
+  try { await 통로.고쳐쓰기('management', 'docs/assembly.md', (글) => 표시붙인글(글, '어떤 법안', '승인', '2026-09-29'), '상황판: 어떤 법안에 승인'); }
   catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
   const 끝글 = 저장소들.management['docs/assembly.md'].글;
   확인('그사이 바뀌면 까닭(그사이 바뀜 · 409)을 담은 오류를 던진다', 던짐.includes('그사이') && 던짐.includes('409'), 던짐);
   확인('그사이 바뀌면 다시 읽지 않는다(GET 한 번 · PUT 한 번)', g.기록.filter((x) => x.startsWith('GET')).length === 1 && g.기록.filter((x) => x.startsWith('PUT')).length === 1, g.기록.join(' / '));
-  확인('그사이 바뀌면 GitHub의 글은 그사이 바뀐 그대로다(찍은 답이 안 적힌다)', 끝글.includes('다른 기기가 올린 법안') && !끝글.includes('**신설**'));
+  확인('그사이 바뀌면 GitHub의 글은 그사이 바뀐 그대로다(찍은 답이 안 적힌다)', 끝글.includes('다른 기기가 올린 법안') && !끝글.includes('**승인**'));
 }
 { // 쓰기 — 열쇠가 쓰기를 못 하면(401) 다시 해 보지 않고 응답 번호를 담아 던진다 //
   const 저장소들 = { management: { 'docs/assembly.md': { 글: 의회, sha: 's0' } } };
@@ -107,22 +107,38 @@ console.log('[github 시험] START');
   확인('파일 목록 다섯 곳을 동시에 받는다', 가장많이 === 5, `동시에 가장 많이 ${가장많이}곳`);
   확인('한꺼번에 받아도 저장소 차례는 목록 차례 그대로다', 부서.map((x) => x.이름).join() === '곳0,곳1,곳2,곳3,곳4', 부서.map((x) => x.이름).join());
 }
-{ // 적어도 되는 파일 — bp-백엔드의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」 · [관리부 작업 448] 시험 ② //
-  확인('적어도됨: 관리부 설계실 파일은 참', 적어도됨('management', 'docs/설계실.md') === true);
-  확인('적어도됨: 관리부 의회 파일은 참', 적어도됨('management', 'docs/assembly.md') === true);
-  확인('적어도됨: 다른 저장소(모든예약)의 설계실 파일은 거짓', 적어도됨('s36524-app', 'docs/설계실.md') === false);
-  확인('적어도됨: 관리부라도 작업 목록(docs/work.md)은 거짓', 적어도됨('management', 'docs/work.md') === false);
-  const 저장소들 = { 's36524-app': { 'docs/설계실.md': { 글: 의회, sha: 's0' } } };
-  const g = 가짜GitHub(저장소들); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
-  let 던짐 = ''; try { await 통로.고쳐쓰기('s36524-app', 'docs/설계실.md', (글) => 글 + 'x', '시험'); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
-  확인('고쳐쓰기()도 적어도 되는 파일이 아니면 GitHub에 묻지도 적지도 않고 던진다', 던짐.includes('관리부 저장소의 의회 파일과 설계실 파일에만') && g.기록.length === 0 && 저장소들['s36524-app']['docs/설계실.md'].글 === 의회, `${던짐} · 요청 ${g.기록.length}개`);
+{ // 적어도 되는 파일 — bp-백엔드의 「문서 저장소는 비공개로 두고, 상황판은 관리부 의회 파일과 곳마다의 설계실 파일에만 적는다」 · [관리부 작업 454] 시험 ② //
+  // 적어도됨(저장소, 경로) = (저장소 = 관리부 AND 경로 = docs/assembly.md) OR (저장소 ∈ 부서·프로젝트 목록 AND 경로 = docs/설계실.md) //
+  const 곳들 = ['management', 'knowledge', 's36524-app', 'ilgongil-app'];
+  확인('적어도됨: 관리부 설계실 파일은 참', 적어도됨('management', 'docs/설계실.md', 곳들) === true && 적어도됨('management', 'docs/설계실.md') === true);
+  확인('적어도됨: 관리부 의회 파일은 참', 적어도됨('management', 'docs/assembly.md', 곳들) === true);
+  확인('적어도됨: 부서·프로젝트(모든예약)의 설계실 파일은 참', 적어도됨('s36524-app', 'docs/설계실.md', 곳들) === true);
+  확인('적어도됨: 모든예약이라도 작업 목록(docs/work.md)은 거짓', 적어도됨('s36524-app', 'docs/work.md', 곳들) === false);
+  확인('적어도됨: 모든예약의 의회 같은 이름 파일(docs/assembly.md)은 거짓', 적어도됨('s36524-app', 'docs/assembly.md', 곳들) === false);
+  확인('적어도됨: 관리부라도 작업 목록(docs/work.md)은 거짓', 적어도됨('management', 'docs/work.md', 곳들) === false);
+  확인('적어도됨: 전역 환경(claude-config)의 파일은 목록에 넣어도 거짓', 적어도됨('claude-config', 'docs/설계실.md', [...곳들, 'claude-config']) === false && 적어도됨('claude-config', 'CLAUDE.md', 곳들) === false);
+  확인('적어도됨: 부서·프로젝트 목록에 없는 저장소의 설계실 파일은 거짓', 적어도됨('status-board', 'docs/설계실.md', 곳들) === false);
+  { // 부서·프로젝트 설계실 파일 — 고쳐쓰기()가 그 저장소에 커밋 하나로 적는다 //
+    const 저장소들 = { 's36524-app': { 'docs/설계실.md': { 글: 의회, sha: 's0' } } };
+    const g = 가짜GitHub(저장소들); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
+    const r = await 통로.고쳐쓰기('s36524-app', 'docs/설계실.md', (글) => 표시붙인글(글, '어떤 법안', '승인', '2026-10-06', 'docs/설계실.md'), '상황판: 시험', 곳들);
+    확인('고쳐쓰기() — 모든예약 설계실 파일에 승인이 적히고 PUT은 그 저장소 그 파일 하나', r.바뀜 && 저장소들['s36524-app']['docs/설계실.md'].글.includes('> 📌 **승인** | 2026-10-06') && g.기록.filter((x) => x.startsWith('PUT')).join() === 'PUT /repos/heyjay0811/s36524-app/contents/docs/설계실.md', g.기록.join(' / '));
+  }
+  { // 적어도 되는 파일이 아니면 GitHub에 묻지도 적지도 않는다 //
+    const 저장소들 = { 's36524-app': { 'docs/work.md': { 글: 의회, sha: 's0' }, 'docs/설계실.md': { 글: 의회, sha: 's1' } } };
+    const g = 가짜GitHub(저장소들); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
+    let 던짐 = ''; try { await 통로.고쳐쓰기('s36524-app', 'docs/work.md', (글) => 글 + 'x', '시험', 곳들); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
+    확인('고쳐쓰기()도 적어도 되는 파일이 아니면(모든예약 작업 목록) GitHub에 묻지도 적지도 않고 던진다', 던짐.includes('관리부 의회 파일과 부서·프로젝트마다의 설계실 파일에만') && g.기록.length === 0 && 저장소들['s36524-app']['docs/work.md'].글 === 의회, `${던짐} · 요청 ${g.기록.length}개`);
+    let 던짐2 = ''; try { await 통로.고쳐쓰기('s36524-app', 'docs/설계실.md', (글) => 글 + 'x', '시험'); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐2 = e.message; }
+    확인('고쳐쓰기()에 부서·프로젝트 목록을 안 넘기면 관리부 밖 설계실 파일에는 적지 않는다', 던짐2.includes('설계실 파일에만') && g.기록.length === 0, `${던짐2} · 요청 ${g.기록.length}개`);
+  }
 }
 { // 열쇠 없이는 비공개 저장소가 안 읽힌다 — 없음(null)이 아니라 실패로 알려야 한다 //
   const g = 가짜GitHub({ management: {} }); const 통로 = 통로만들기({ fetch: g.fetch, 기록: 조용히 });
   let 던짐 = ''; try { await 통로.부서저장소들(); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
   확인('열쇠 없이 저장소 목록을 부르면 「열쇠가 맞는지」를 알리며 던진다', 던짐.includes('열쇠'), 던짐);
 }
-// ── 지문(ETag)으로 묻기 — bp-백엔드의 「상황판은 의회·설계실·작업과 확정된 설계는 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」 ───────────────────────── //
+// ── 지문(ETag)으로 묻기 — bp-백엔드의 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」 ───────────────────────── //
 {
   const 보낸지문 = [];
   const 가짜 = async (주소, 옵션) => {
