@@ -6,6 +6,8 @@
 //   「wrong」으로 시작하는 열쇠를 넣으면 읽기는 되고 쓰기만 401로 막힌다 — 못 적었을 때의 화면을 잰다. //
 //   `SB_HIDE=yessoft`면 그 저장소를 열쇠가 못 보는 것처럼 404로, `SB_SCREEN_FAIL=bill-parse.mjs`면 그 화면 코드 파일을 404로 준다. //
 //   `SB_READ_FAIL=작업-448`처럼 주면 경로에 그 조각이 든 파일은 목록에는 있고 읽기만 500이다 — 못 읽었을 때의 화면을 잰다. //
+//   `SB_LIST_FAIL=knowledge`면 그 저장소의 커밋 묻기와 파일 목록이 500이다 — 파일 목록을 못 확인한 곳의 화면을 잰다. //
+//   사본 폴더(시작할 때 찍는 경로)에 파일을 만들거나 지우면 GitHub에 커밋해 올린 것처럼 저장소 커밋 번호가 바뀐다. //
 // 한계: 저장소 여덟 곳의 docs 문서 몇백 개까지만 생각했다 · 바꿀 때: 시험할 문서가 수천 개가 되면 필요한 파일만 복사한다. //
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, copyFileSync } from 'node:fs';
@@ -73,6 +75,8 @@ const 읽기지연 = Number(process.env.SB_READ_DELAY_MS || 0);
 const 못읽을것 = String(process.env.SB_READ_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
 // 열쇠가 못 보는 저장소 흉내 — 이 이름(쉼표로 여럿)의 저장소는 저장소 목록에서 빠지고 파일 목록·파일 읽기가 404다(bp-부서프로젝트목록의 「상황판은 의회와 작업은 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」 · bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」). //
 const 숨길저장소 = String(process.env.SB_HIDE || '').split(',').map((s) => s.trim()).filter(Boolean);
+// [관리부 작업 457] 파일 목록을 못 읽게 할 저장소 — 이 이름(쉼표로 여럿)의 저장소는 저장소 목록에는 있고 커밋 묻기·파일 목록만 500이다 //
+const 목록못읽을곳 = String(process.env.SB_LIST_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
 // 못 읽게 할 화면 코드 파일 — 이 이름(쉼표로 여럿)의 화면 파일은 404다. 화면 모듈을 못 불러올 때 알리는지 잰다(제7조 ②). //
 const 못줄화면 = String(process.env.SB_SCREEN_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
 const 서버 = createServer((요청, 응답) => {
@@ -95,12 +99,27 @@ const 서버 = createServer((요청, 응답) => {
     const 숨김 = 숨길저장소.find((name) => api.startsWith(`/repos/heyjay0811/${name}/`));
     if (숨김) { console.log(`[시험 서버] 열쇠가 못 보는 저장소 흉내(404) — ${숨김}`); return 답(404, { message: 'Not Found' }); }
     let m;
-    if ((m = api.match(/^\/repos\/[^/]+\/([^/]+)\/git\/trees\/HEAD$/))) {
+    // [관리부 작업 457] 파일 목록을 일부러 못 읽게 할 저장소 — 저장소 커밋 묻기와 파일 목록이 500이다(bp-백엔드 「…원본에서 그때그때 읽은 문서로…」 조 ⑧ 시험) //
+    if ((m = api.match(/^\/repos\/[^/]+\/([^/]+)\/(git\/trees\/|commits$)/)) && 목록못읽을곳.includes(m[1]) && (m[2] !== 'commits' || !u.searchParams.get('path'))) {
+      console.log(`[시험 서버] 일부러 파일 목록을 못 읽게 했다(500) — ${m[1]}`);
+      return 답(500, { message: '시험 서버가 일부러 못 읽게 한 파일 목록' });
+    }
+    // 아무 커밋의 파일 목록이든 지금 사본의 목록을 준다 — 사본에는 커밋 이력이 없다 //
+    if ((m = api.match(/^\/repos\/[^/]+\/([^/]+)\/git\/trees\/[^/]+$/))) {
       const 폴더 = join(뿌리, m[1]);
       if (!existsSync(폴더)) return 답(404, { message: 'Not Found' });
+      console.log(`[시험 서버] 파일 목록(git/trees) — ${m[1]}`);
       return 답(200, { truncated: false, tree: 모든파일(폴더).map((f) => ({ path: relative(폴더, f).split(sep).join('/'), type: 'blob' })) });
     }
     if ((m = api.match(/^\/repos\/[^/]+\/([^/]+)\/commits$/))) {
+      // 경로 없이 물으면 저장소의 마지막 커밋 — 사본의 파일 경로·크기·고친 때로 지은 지문을 커밋 번호로 준다. 파일이 생기거나 지워지거나 고쳐지면 바뀐다 //
+      if (!u.searchParams.get('path')) {
+        const 폴더 = join(뿌리, m[1]);
+        if (!existsSync(폴더)) return 답(404, { message: 'Not Found' });
+        const 파일들 = 모든파일(폴더).map((f) => { const s = statSync(f); return [relative(폴더, f), s.size, s.mtimeMs]; }).sort();
+        console.log(`[시험 서버] 저장소 커밋 묻기 — ${m[1]}`);
+        return 답(200, [{ sha: 지문(JSON.stringify(파일들)), commit: { committer: { date: new Date(Math.max(0, ...파일들.map((x) => x[2]))).toISOString() } } }]);
+      }
       const 파일 = join(뿌리, m[1], u.searchParams.get('path') || '');
       return 답(200, existsSync(파일) ? [{ commit: { committer: { date: statSync(파일).mtime.toISOString() } } }] : []);
     }

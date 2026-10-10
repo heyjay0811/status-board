@@ -10,7 +10,7 @@ const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 const 글로 = (b) => new TextDecoder().decode(Uint8Array.from(atob(b), (c) => c.charCodeAt(0)));
 
 // 가짜 GitHub — 저장소마다 { 경로: { 글, sha } } //
-function 가짜GitHub(저장소들, { 끼어들기 } = {}) {
+function 가짜GitHub(저장소들, { 끼어들기, 커밋들 = {} } = {}) {
   let 번호 = 0; const 기록 = [];
   const 응답 = (상태, 값) => ({ status: 상태, text: async () => JSON.stringify(값) });
   const fetch = async (주소, 옵션) => {
@@ -18,9 +18,13 @@ function 가짜GitHub(저장소들, { 끼어들기 } = {}) {
     if (!옵션.headers.Authorization && u.pathname !== '/repos/heyjay0811/공개/contents/README.md') return 응답(404, { message: 'Not Found' });
     let m;
     if (u.pathname === '/user/repos') return 응답(200, Object.keys(저장소들).map((name) => ({ name })));
-    if ((m = u.pathname.match(/^\/repos\/heyjay0811\/([^/]+)\/git\/trees\/HEAD$/)))
+    if ((m = u.pathname.match(/^\/repos\/heyjay0811\/([^/]+)\/git\/trees\/[^/]+$/)))
       return 응답(200, { truncated: false, tree: Object.keys(저장소들[decodeURIComponent(m[1])]).map((path) => ({ path, type: 'blob' })) });
-    if ((m = u.pathname.match(/^\/repos\/heyjay0811\/([^/]+)\/commits$/))) return 응답(200, [{ commit: { committer: { date: '2026-09-29T11:22:33Z' } } }]);
+    if ((m = u.pathname.match(/^\/repos\/heyjay0811\/([^/]+)\/commits$/))) {
+      const 이름 = decodeURIComponent(m[1]);
+      if (!저장소들[이름]) return 응답(500, { message: '서버 오류' });
+      return 응답(200, [{ sha: 커밋들[이름] || 'c-' + 이름, commit: { committer: { date: '2026-09-29T11:22:33Z' } } }]);
+    }
     if ((m = u.pathname.match(/^\/repos\/heyjay0811\/([^/]+)\/contents\/(.+)$/))) {
       const 저장소 = 저장소들[decodeURIComponent(m[1])]; const 경로 = decodeURIComponent(m[2]);
       if (!저장소) return 응답(500, { message: '서버 오류' });   // 못 읽는 경우를 흉내 낸다 //
@@ -53,8 +57,8 @@ console.log('[github 시험] START');
   확인('못 읽으면 없음으로 덮지 않고 던진다', 던짐.includes('못 읽었다') && 던짐.includes('500'), 던짐);
   const 목록 = await 통로.파일목록('management');
   확인('파일 목록에 설계실 파일이 있다(이름을 코드에 안 적고 찾는다)', 목록.includes('docs/설계실.md'));
-  const 부서 = await 통로.부서저장소들();
-  확인('`.claude` 폴더가 있는 저장소만 부서·프로젝트로 센다', 부서.map((x) => x.이름).join() === 'management');
+  const 확인결과 = await 통로.곳목록확인();
+  확인('`.claude` 폴더가 있는 저장소만 부서·프로젝트로 센다', 확인결과.filter((x) => x.곳).map((x) => x.이름).join() === 'management' && 확인결과.find((x) => x.이름 === '배포만').곳 === false, JSON.stringify(확인결과));
   확인('마지막 커밋 시각을 돌려준다', (await 통로.마지막커밋('management', 'docs/assembly.md')) === '2026-09-29T11:22:33Z');
 }
 { // 쓰기 — 한 번 읽고 한 번 적어 커밋 하나 //
@@ -103,7 +107,7 @@ console.log('[github 시험] START');
     return g.fetch(주소, 옵션);
   };
   const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: 느린fetch, 기록: 조용히 });
-  const 부서 = await 통로.부서저장소들();
+  const 부서 = (await 통로.곳목록확인()).filter((x) => x.곳);
   확인('파일 목록 다섯 곳을 동시에 받는다', 가장많이 === 5, `동시에 가장 많이 ${가장많이}곳`);
   확인('한꺼번에 받아도 저장소 차례는 목록 차례 그대로다', 부서.map((x) => x.이름).join() === '곳0,곳1,곳2,곳3,곳4', 부서.map((x) => x.이름).join());
 }
@@ -135,9 +139,49 @@ console.log('[github 시험] START');
 }
 { // 열쇠 없이는 비공개 저장소가 안 읽힌다 — 없음(null)이 아니라 실패로 알려야 한다 //
   const g = 가짜GitHub({ management: {} }); const 통로 = 통로만들기({ fetch: g.fetch, 기록: 조용히 });
-  let 던짐 = ''; try { await 통로.부서저장소들(); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
+  let 던짐 = ''; try { await 통로.곳목록확인(); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
   확인('열쇠 없이 저장소 목록을 부르면 「열쇠가 맞는지」를 알리며 던진다', 던짐.includes('열쇠'), 던짐);
 }
+// ── [관리부 작업 457] bp-백엔드 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」 조 ⑤ — 모바일 앱은 저장소 목록 한 번 · 곳마다 마지막 커밋을 묻고 //
+//   목록다시받기(곳) = (기기에 저장한 목록 없음) OR (지금 마지막 커밋 ≠ 목록을 받을 때 저장한 마지막 커밋)인 곳만 파일 목록을 다시 받는다 ── //
+{
+  const 저장소들 = { management: { '.claude/s': { 글: '', sha: 'a' }, 'docs/work.md': { 글: '', sha: 'b' } },
+    s36524: { '.claude/s': { 글: '', sha: 'a' }, 'docs/work.md': { 글: '', sha: 'b' } }, 배포만: { 'index.html': { 글: '', sha: 'c' } } };
+  const 커밋들 = { management: 'm1', s36524: 's1', 배포만: 'd1' };
+  const g = 가짜GitHub(저장소들, { 커밋들 }); const 통로 = 통로만들기({ 열쇠: 'k', fetch: g.fetch, 기록: 조용히 });
+  const 셈 = (꼴) => g.기록.filter((x) => 꼴.test(x)).length;
+  const 처음 = await 통로.곳목록확인();
+  확인('처음(기기에 아는 것 없음) — 저장소마다 커밋을 묻고 파일 목록을 받는다', 셈(/\/commits$/) === 3 && 셈(/git\/trees/) === 3 && 셈(/\/user\/repos$/) === 1, g.기록.join(' / '));
+  확인('처음 — 목록을 받은 커밋 번호를 함께 돌려주고, 그 커밋의 파일 목록을 받는다', 처음.find((x) => x.이름 === 's36524').커밋 === 's1' && g.기록.includes('GET /repos/heyjay0811/s36524/git/trees/s1'), g.기록.join(' / '));
+  const 알던 = Object.fromEntries(처음.map((x) => [x.이름, { 커밋: x.커밋, 곳: x.곳 }]));
+  g.기록.length = 0;
+  const 둘째 = await 통로.곳목록확인(알던);
+  확인('안 바뀐 곳 — 저장소 목록 한 번 · 곳마다 커밋 묻기 한 번씩만 하고 파일 목록은 받지 않는다', 셈(/\/user\/repos$/) === 1 && 셈(/\/commits$/) === 2 && 셈(/git\/trees/) === 0, g.기록.join(' / '));
+  확인('안 바뀐 곳 — 그대로라고 돌려준다', 둘째.filter((x) => x.곳).every((x) => x.그대로 && !x.목록), JSON.stringify(둘째));
+  확인('이미 부서·프로젝트가 아니라고 가른 저장소는 다시 묻지 않는다', !g.기록.some((x) => x.includes('/배포만/')), g.기록.join(' / '));
+  // 한 곳에 새 커밋(새 작업 파일) · 새 저장소 하나 //
+  저장소들.s36524['docs/작업/작업-9.md'] = { 글: '', sha: 'n' }; 커밋들.s36524 = 's2';
+  저장소들.새곳 = { '.claude/s': { 글: '', sha: 'a' } };
+  g.기록.length = 0;
+  const 셋째 = await 통로.곳목록확인(알던);
+  const s = 셋째.find((x) => x.이름 === 's36524');
+  확인('커밋이 바뀐 곳만 파일 목록을 다시 받아 새 파일이 든다', s.커밋 === 's2' && s.목록.includes('docs/작업/작업-9.md') && 셈(/git\/trees/) === 2 && !g.기록.some((x) => x.includes('/management/git/trees')), g.기록.join(' / '));
+  확인('저장소 목록에 새로 생긴 저장소는 파일 목록을 받아 부서·프로젝트로 가른다', 셋째.find((x) => x.이름 === '새곳').곳 === true, JSON.stringify(셋째));
+  g.기록.length = 0;
+  await 통로.곳목록확인(알던, { 모두다시: true });
+  확인('모두다시(다시 읽기) — 커밋이 같아도 모든 저장소의 파일 목록을 받는다', 셈(/git\/trees/) === 4, g.기록.join(' / '));
+  // 한 곳을 못 읽으면 그 곳만 오류로 돌려주고 다른 곳은 그대로 맞춘다 //
+  const 못읽는fetch = async (주소, 옵션) => (주소.includes('/s36524/') ? { status: 500, text: async () => JSON.stringify({ message: '서버 오류' }) } : g.fetch(주소, 옵션));
+  const 통로2 = 통로만들기({ 열쇠: 'k', fetch: 못읽는fetch, 기록: 조용히 });
+  const 넷째 = await 통로2.곳목록확인(알던);
+  const 못 = 넷째.find((x) => x.이름 === 's36524');
+  확인('한 곳을 못 읽으면 그 곳에 까닭을 달고 던지지 않는다(아는 곳이면 곳으로 둔다)', 못.오류 && 못.오류.includes('500') && 못.곳 === true && 넷째.find((x) => x.이름 === 'management').그대로, JSON.stringify(넷째));
+  // 빈 저장소 — GitHub이 커밋 묻기에 409로 답한다. 못 읽은 것이 아니라 파일이 없는 저장소라 부서·프로젝트가 아니다 //
+  const 빈fetch = async (주소, 옵션) => (주소.includes('/새곳/commits') ? { status: 409, text: async () => JSON.stringify({ message: 'Git Repository is empty.' }) } : g.fetch(주소, 옵션));
+  const 빈 = (await 통로만들기({ 열쇠: 'k', fetch: 빈fetch, 기록: 조용히 }).곳목록확인(알던)).find((x) => x.이름 === '새곳');
+  확인('빈 저장소(커밋 묻기 409)는 오류가 아니라 부서·프로젝트가 아닌 저장소로 돌려준다', 빈.곳 === false && !빈.오류, JSON.stringify(빈));
+}
+
 // ── 지문(ETag)으로 묻기 — bp-백엔드의 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」 ───────────────────────── //
 {
   const 보낸지문 = [];
