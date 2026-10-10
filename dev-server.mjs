@@ -12,7 +12,7 @@
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, copyFileSync } from 'node:fs';
 import { join, dirname, extname, relative, sep } from 'node:path';
-import { tmpdir, homedir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
@@ -45,22 +45,6 @@ for (const [이름, 폴더] of Object.entries(저장소들)) {
     for (const f of readdirSync(작업)) if (f.endsWith('.md')) copyFileSync(join(작업, f), join(사본, 'docs', '작업', f));
   }
   if (existsSync(join(폴더, '.claude'))) { mkdirSync(join(사본, '.claude'), { recursive: true }); writeFileSync(join(사본, '.claude', 'settings.json'), '{}'); }
-  // [관리부 작업 443] 의회 박스가 맞댈 갈 곳 파일 — 저장소 규칙 파일(CLAUDE.md)도 옮긴다(관리부 설계 bp-의회 「의회 박스는 …맞대 바뀐 곳을 칠한다」 조) //
-  if (existsSync(join(폴더, 'CLAUDE.md'))) copyFileSync(join(폴더, 'CLAUDE.md'), join(사본, 'CLAUDE.md'));
-}
-// 회장실 저장소(yessoftbook — 회장실 CLAUDE.md)와 전역 환경 저장소(claude-config — 전역 규칙·경로 규칙·매 턴 규칙·스킬)도 사본으로 둔다. //
-//   두 저장소에는 `.claude` 표시를 두지 않는다 — 부서·프로젝트가 아니라 상황판 단추에 서지 않는다. //
-{
-  const 회장실 = join(관리부, '..');
-  if (existsSync(join(회장실, 'CLAUDE.md'))) { mkdirSync(join(뿌리, 'yessoftbook'), { recursive: true }); copyFileSync(join(회장실, 'CLAUDE.md'), join(뿌리, 'yessoftbook', 'CLAUDE.md')); 저장소들.yessoftbook = 회장실; }
-  const 전역 = process.env.SB_CLAUDE_CONFIG || join(homedir(), '.claude');
-  if (existsSync(join(전역, 'CLAUDE.md'))) {
-    const 사본 = join(뿌리, 'claude-config');
-    mkdirSync(사본, { recursive: true }); copyFileSync(join(전역, 'CLAUDE.md'), join(사본, 'CLAUDE.md'));
-    for (const 폴더 of ['rules', 'hooks']) if (existsSync(join(전역, 폴더))) { mkdirSync(join(사본, 폴더), { recursive: true }); for (const f of readdirSync(join(전역, 폴더))) if (f.endsWith('.md')) copyFileSync(join(전역, 폴더, f), join(사본, 폴더, f)); }
-    if (existsSync(join(전역, 'skills'))) for (const s of readdirSync(join(전역, 'skills'))) if (existsSync(join(전역, 'skills', s, 'SKILL.md'))) { mkdirSync(join(사본, 'skills', s), { recursive: true }); copyFileSync(join(전역, 'skills', s, 'SKILL.md'), join(사본, 'skills', s, 'SKILL.md')); }
-    저장소들['claude-config'] = 전역;
-  }
 }
 console.log(`[시험 서버] 사본을 만들었다 — ${Object.keys(저장소들).length}곳 → ${뿌리}`);
 
