@@ -97,6 +97,7 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .줄 .제목 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .딱지 { display: inline-block; font-size: 11px; line-height: 1.6; padding: 0 6px; border-radius: 10px; border: 1px solid var(--선); color: var(--흐린); white-space: nowrap; }
 .딱지.답 { border-color: var(--강조); color: var(--강조); }
+.딱지.출처 { border-color: var(--글); color: var(--글); background: var(--머리); font-weight: 700; }
 .딱지.판단 { border-color: #bf8700; color: #bf8700; font-weight: 700; }
 .딱지.신설, .딱지.추가 { border-color: var(--새것); color: var(--새것); font-weight: 600; }
 .딱지.변경 { border-color: var(--바꿈); color: var(--바꿈); font-weight: 600; }
