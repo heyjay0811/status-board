@@ -21,11 +21,27 @@ button { font: inherit; color: inherit; }
 a { color: var(--강조); }
 
 /* 머리 줄 — PC 앱 진행 현황처럼 앱 이름을 둔다(bp-프론트엔드의 「상황판 PC 앱과 모바일 앱은 모양을 한 벌로 쓴다」). 탭은 두지 않는다(bp-부서프로젝트목록의 「상황판은 PC 앱과 폰 모두 부서·프로젝트 단추를 늘어놓고, 고른 곳을 그 아래 뷰어에 펼친다」).
-   좁은 화면에서 시각이 길면 다음 줄로 내린다 — 박스는 이 줄 아래부터 덮어 「적는 중」이 늘 보인다(bp-결재의 「상황판은 비공개 저장소를 열쇠로 읽고, 찍은 답을 GitHub의 의회 파일과 설계실 파일에 바로 적는다」). */
+   좁은 화면에서 시각이 길면 다음 줄로 내린다 — 박스는 이 줄 아래부터 덮어 「전달 안 됨」 딱지가 늘 보인다(bp-결재 「찍은 답을 원본까지 전달하기와 「전달 안 됨」 딱지」 조 ⑦). */
 .머리 { flex: none; position: relative; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 16px; background: var(--바탕); border-bottom: 1px solid var(--선); }
 .앱이름 { font-size: 18px; font-weight: 700; }
 .시각 { order: 3; flex-basis: 100%; font-size: 12px; color: var(--흐린); }
 #다시읽기 { margin-left: auto; }
+/* [관리부 작업 464] bp-결재 「찍은 답을 원본까지 전달하기와 「전달 안 됨」 딱지」 조 ⑦⑪ — 「↻」 곁의 「전달 안 됨 N」 딱지와 그 아래로 펼치는 목록.
+   목록은 머리 줄에 매달려 뷰어·박스 위에 뜬다 — 목록 칸과 박스 칸에는 아무것도 끼워 넣지 않는다. 색은 theme.css 이름표(지움·바탕·선·흐린·글)만 쓴다. */
+.전달딱지 { margin-left: auto; border-color: var(--지움); color: var(--지움); background: color-mix(in srgb, var(--지움) 12%, var(--바탕)); font-weight: 700; }
+.전달딱지:hover { border-color: var(--지움); color: var(--지움); }
+.전달딱지[hidden] { display: none; }
+.전달딱지:not([hidden]) + #다시읽기 { margin-left: 0; }
+.전달딱지[aria-expanded="true"] { outline: 2px solid var(--지움); outline-offset: 1px; }
+.전달목록 { position: absolute; top: 100%; right: 8px; z-index: 13; width: min(440px, calc(100vw - 16px)); max-height: 60vh; overflow: auto;
+  margin: 4px 0 0; padding: 6px 0; list-style: none; background: var(--바탕); border: 1px solid var(--선); border-radius: 8px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--글) 20%, transparent); font-size: 13px; }
+.전달목록[hidden] { display: none; }
+.전달목록 li { padding: 6px 12px; overflow-wrap: anywhere; }
+.전달목록 li + li { border-top: 1px solid var(--선); }
+.전달목록 .전달곳 { color: var(--흐린); font-size: 12px; }
+.전달목록 .전달무엇 { font-weight: 600; }
+.전달목록 .못닿음 { display: block; margin-top: 2px; color: var(--지움); }
 .작은단추 { border: 1px solid var(--선); background: var(--칸); color: var(--글); border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
 .작은단추:hover { border-color: var(--강조); color: var(--강조); }
 
@@ -186,6 +202,7 @@ mark { background: var(--노랑); color: inherit; }
 @media (min-width: 900px) {
   .시각 { order: 0; flex-basis: auto; margin-left: auto; }
   #다시읽기 { margin-left: 0; }
+  .전달딱지 { margin-left: 0; }
   #본문 { max-width: none; padding: 14px 24px; }
   .위칸 { padding: 8px 24px 0; }
   .뷰어칸 { padding: 12px 24px 0; }

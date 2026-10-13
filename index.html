@@ -22,7 +22,10 @@
 <header class="머리">
   <strong class="앱이름">상황판</strong>
   <span class="시각" id="시각"></span>
+  <!-- [관리부 작업 464] bp-결재 「찍은 답을 원본까지 전달하기와 「전달 안 됨」 딱지」 조 ⑦⑪ — 아직 원본에 닿지 않은 답이 있으면 「↻」 곁에 서고, 누르면 아래에 목록을 펼친다(app.mjs 딱지그리기()) -->
+  <button type="button" class="작은단추 전달딱지" id="전달딱지" hidden aria-expanded="false" aria-controls="전달목록" title="누르면 아직 원본에 닿지 않은 답을 보인다 — 상황판이 알아서 보낸다"></button>
   <button type="button" class="작은단추" id="다시읽기" title="GitHub에서 다시 읽는다">↻</button>
+  <ul class="전달목록" id="전달목록" hidden></ul>
 </header>
 <main id="본문"><p class="안내">읽는 중…</p></main>
 <div class="박스덮개" id="박스덮개" hidden><section class="박스" id="박스" aria-live="polite"></section></div>
