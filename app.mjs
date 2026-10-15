@@ -290,7 +290,12 @@ async function 받아오고다시읽기() {
   try {
     기록(`받아 오기 — ${받을곳.join('·')}`);
     const r = await 상태.통로.받아오기(받을곳);
-    if (r.못받음.length) { 상태.받기실패글 = `GitHub에서 못 받아 왔다 — ${r.못받음.map((x) => x.까닭).join(' · ')}`; 기록('ERROR ' + 상태.받기실패글); }
+    // bp-백엔드 제2조 ③ — 못 받은 곳마다 「GitHub에서 못 받아 왔다 — 곳 이름 · 까닭」. 까닭은 앱 본체(docs-ipc.cjs)가 쉬운 말로 가른 것이고, //
+    //   원래 git 글(원래)은 화면에 띄우지 않고 로그에만 남긴다. //
+    if (r.못받음.length) {
+      상태.받기실패글 = r.못받음.map((x) => `GitHub에서 못 받아 왔다 — ${보일이름(x.저장소)} · ${x.까닭}`).join(' · ');
+      for (const x of r.못받음) 기록(`ERROR 받아 오기 — ${x.저장소}: ${x.까닭}${x.원래 ? ` (git: ${x.원래})` : ''}`);
+    }
     기록(`받아 오기 끝 — ${Date.now() - 처음}ms · 새 커밋 든 곳 ${r.바뀜.length ? r.바뀜.join('·') : '없음'}`);
     상태.받는중 = false;
     if (r.바뀜.length) { await 모두읽기(false, true); return; }
