@@ -29,6 +29,8 @@
   <button type="button" class="작은단추 전달딱지 새판딱지" id="새판딱지" hidden aria-expanded="false" aria-controls="새판까닭" title="누르면 새 판을 못 받은 까닭을 보인다 — 지금 판으로 돈다">새 판 못 받음</button>
   <button type="button" class="작은단추 전달딱지" id="전달딱지" hidden aria-expanded="false" aria-controls="전달목록" title="누르면 아직 원본에 닿지 않은 답을 보인다 — 상황판이 알아서 보낸다"></button>
   <button type="button" class="작은단추" id="다시읽기" title="GitHub에서 다시 읽는다">↻</button>
+  <!-- [관리부 작업 475] bp-부서프로젝트목록 제3조 ⑯ — 모바일 앱에서 곳 하나를 펼친 동안만 서는 줄: 「◀ 접기」와 그 곳 이름. 첫 줄 아래 한 줄을 통째로 쓴다(app.mjs 곳머리그리기()). PC 앱 머리 줄에는 이 칸이 없다 -->
+  <div class="곳머리" id="곳머리" hidden><button type="button" class="작은단추" id="곳접기" title="이 곳을 접고 부서·프로젝트 단추 화면으로 돌아간다">◀ 접기</button><strong class="곳머리이름" id="곳머리이름"></strong></div>
   <ul class="전달목록" id="전달목록" hidden></ul>
   <ul class="전달목록" id="새판까닭" hidden></ul>
 </header>

@@ -91,6 +91,25 @@ a { color: var(--강조); }
   .곳단추줄 { flex-direction: column; align-items: stretch; }
   .묶음칸막이 { width: auto; border-left: 0; border-top: 1px solid var(--선); margin: 0; }
 }
+/* [관리부 작업 475] bp-부서프로젝트목록 제3조 ⑯ — 모바일 앱의 첫 화면(큰 단추)과 곳을 펼친 동안의 머리 줄 「◀ 접기 · 곳 이름」.
+   큰 단추는 설계 모듈 카드와 같은 카드 모양(선·머리 바탕·둥근 9px)이고, 묶음은 묶음 이름표(작은 흐린 글자)와 칸막이 선 — 자리로 가른다(⑮, 새 색 없음).
+   칸은 폭에 맞춰 늘어난다 — 375px 폰은 2열, 넓은 화면은 더 많은 열. 수는 단추 줄의 수 모양(.수)을 그대로 오른쪽 위에 둔다.
+   「◀ 접기」 줄은 머리 줄 첫 줄(앱 이름 · 판 · 딱지 · ↻) 아래 한 줄을 통째로 써서 좁은 폭에서도 첫 줄이 넘치지 않고, 곳 이름이 길면 말줄임한다.
+   곳을 펼친 동안과 첫 화면에서 알림이 없으면 위 칸이 비어 숨는다. PC 앱은 이 칸들을 그리지 않는다. */
+.위칸:empty { display: none; }
+.곳머리 { order: 2; flex-basis: 100%; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.곳머리[hidden] { display: none; }
+.곳머리이름 { flex: 1; min-width: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.첫화면 { padding: 2px 0 8px; }
+.큰단추묶음 > .묶음이름 { display: block; margin: 0 0 8px; }
+.큰묶음칸막이 { border: 0; border-top: 1px solid var(--선); margin: 16px 0 12px; }
+.큰단추칸 { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.큰단추 { display: flex; flex-direction: column; gap: 4px; min-height: 78px; padding: 12px 12px 10px 14px; text-align: left; border: 1px solid var(--선); background: var(--머리); color: var(--글); border-radius: 9px; cursor: pointer; min-width: 0; }
+.큰단추:hover, .큰단추:focus-visible { border-color: var(--강조); }
+.큰단추머리 { display: flex; align-items: flex-start; gap: 6px; }
+.큰단추이름 { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.큰단추 .수 { flex: none; }
+.큰단추폴더 { font-size: 12px; color: var(--흐린); overflow-wrap: anywhere; min-height: 1.6em; }
 .곳펼침 { border-bottom: 1px solid var(--선); margin-bottom: 12px; }
 .곳펼침제목 { font-size: 15px; margin: 6px 0 8px; color: var(--강조); }
 /* 폰의 설계 칩 — 뷰어의 작업 목록 위(bp-설계) */
