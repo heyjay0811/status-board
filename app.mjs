@@ -430,7 +430,7 @@ function 딱지그리기() {
 function 열쇠그리기() {
   본문.innerHTML = `<div class="열쇠칸"><h2>GitHub 열쇠 넣기</h2>
     <p class="안내">문서가 든 저장소는 비공개라, 사용자의 GitHub 열쇠(토큰)로 읽고 씁니다. 열쇠는 이 기기 브라우저 안에만 둡니다(모바일 앱만 열쇠를 씁니다 — PC 앱은 PC의 <code>git</code> 로그인을 씁니다).</p>
-    <p class="안내">GitHub → Settings → Developer settings → Fine-grained tokens에서 만들고, 부서·프로젝트 저장소를 고른 뒤 권한은 <b>Contents: Read and write</b> 하나만 줍니다. 상황판은 관리부 저장소의 의회 파일(<code>docs/assembly.md</code>)과 부서·프로젝트마다 그 저장소의 설계실 파일(<code>docs/설계실.md</code>)에만 적어, 부서·프로젝트 저장소에 쓰기 권한이 있어야 설계안에 찍은 답이 적힙니다.</p>
+    <p class="안내">GitHub → Settings → Developer settings → Fine-grained tokens에서 만들고, 부서·프로젝트 저장소를 고른 뒤 권한은 <b>Contents: Read and write</b> 하나만 줍니다. 상황판은 답을 누를 때마다 그 안이 있는 저장소의 답 파일 자리(<code>docs/답/</code>)에 작은 답 파일 하나만 새로 만들어, 부서·프로젝트 저장소에 쓰기 권한이 있어야 설계안에 찍은 답이 닿습니다.</p>
     <input id="열쇠" type="password" autocomplete="off" placeholder="github_pat_…">
     <p><button type="button" class="답단추" data-일="열쇠저장">넣고 읽기</button></p></div>`;
 }
