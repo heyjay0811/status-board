@@ -10,6 +10,9 @@
 //   사본 폴더(시작할 때 찍는 경로)에 파일을 만들거나 지우면 GitHub에 커밋해 올린 것처럼 저장소 커밋 번호가 바뀐다. //
 //   [관리부 작업 464] 파일 지문(sha) 없는 PUT은 새 파일 만들기다(없으면 201 · 같은 이름이 있으면 422). 돌리는 중에 //
 //   `/__시험?쓰기지연=ms&쓰기끊기=1&응답잃기=1`로 쓰기를 늦추거나 끊거나 응답을 잃게 한다(아래 「시험 갈래」). //
+//   [관리부 작업 472] 최종 판 흉내 — GitHub Pages가 올리기를 끝낸 status-board 커밋 묻기(actions/runs)에 시험 갈래의 `판`을 준다. //
+//   `/__시험?판=<아무 글자>`로 최종 판을 바꿔 끼우고, `판못받음=1`이면 그 묻기를 500으로 실패시킨다(인터넷이 끊긴 것 흉내). //
+//   처음 값은 `SB_PAN`(없으면 dev0000)이다. //
 // 한계: 저장소 여덟 곳의 docs 문서 몇백 개까지만 생각했다 · 바꿀 때: 시험할 문서가 수천 개가 되면 필요한 파일만 복사한다. //
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, copyFileSync } from 'node:fs';
@@ -23,7 +26,7 @@ const 관리부 = process.env.SB_MANAGEMENT || join(여기, '..', 'management');
 // 쓰기를 일부러 늦춘다(밀리초) — 진짜 GitHub이 커밋에 2~3초 걸리는 것을 흉내 내어, 찍자마자 벗어나는 경우를 잰다 //
 // [관리부 작업 464] 시험 갈래 — 돌리는 중에 `GET /__시험?쓰기지연=ms&쓰기끊기=1&응답잃기=1`로 바꾼다(빈 값이나 0이면 끈다). //
 //   쓰기끊기 — 쓰기(PUT)를 받지 않고 연결을 끊는다(그물이 끊긴 것 흉내). 응답잃기 — 파일은 만들고 응답 없이 연결을 끊는다(응답을 잃은 것 흉내). //
-const 갈래 = { 쓰기지연: Number(process.env.SB_WRITE_DELAY_MS || 0), 쓰기끊기: false, 응답잃기: false };
+const 갈래 = { 쓰기지연: Number(process.env.SB_WRITE_DELAY_MS || 0), 쓰기끊기: false, 응답잃기: false, 판: process.env.SB_PAN || 'dev0000', 판못받음: false };
 const 포트 = Number(process.env.PORT || 8787);
 
 // 저장소 이름 → 진짜 폴더. 관리부 · 관리부 아래 부서 둘 · projects 아래 프로젝트. //
@@ -81,7 +84,7 @@ const 서버 = createServer((요청, 응답) => {
   }
   const 답 = (상태, 값) => { 응답.writeHead(상태, { 'Content-Type': 'application/json; charset=utf-8' }); 응답.end(JSON.stringify(값)); };
   if (경로 === '/__시험') {
-    for (const k of ['쓰기지연', '쓰기끊기', '응답잃기']) if (u.searchParams.has(k)) { const v = u.searchParams.get(k); 갈래[k] = k === '쓰기지연' ? Number(v || 0) : v === '1'; }
+    for (const k of ['쓰기지연', '쓰기끊기', '응답잃기', '판', '판못받음']) if (u.searchParams.has(k)) { const v = u.searchParams.get(k); 갈래[k] = k === '쓰기지연' ? Number(v || 0) : k === '판' ? v : v === '1'; }
     console.log(`[시험 서버] 시험 갈래 — ${JSON.stringify(갈래)}`);
     return 답(200, { ...갈래, 뿌리 });
   }
@@ -94,6 +97,12 @@ const 서버 = createServer((요청, 응답) => {
       응답.end(readFileSync(파일)); return;
     }
     const api = 경로.slice(4);
+    // [관리부 작업 472] 최종 판 흉내 — Pages가 올리기를 끝낸 status-board 커밋(github.mjs Pages판()) //
+    if (/^\/repos\/[^/]+\/status-board\/actions\/runs$/.test(api)) {
+      if (갈래.판못받음) { console.log('[시험 서버] 시험 갈래 — 최종 판 묻기를 일부러 실패시킨다(500)'); return 답(500, { message: '시험 서버가 일부러 못 받게 한 최종 판' }); }
+      console.log(`[시험 서버] 최종 판 묻기 — ${갈래.판}`);
+      return 답(200, { total_count: 1, workflow_runs: [{ name: 'pages build and deployment', status: 'completed', conclusion: 'success', head_sha: 갈래.판 }] });
+    }
     if (api === '/user/repos') return 답(200, Object.keys(저장소들).filter((name) => !숨길저장소.includes(name)).map((name) => ({ name })));
     const 숨김 = 숨길저장소.find((name) => api.startsWith(`/repos/heyjay0811/${name}/`));
     if (숨김) { console.log(`[시험 서버] 열쇠가 못 보는 저장소 흉내(404) — ${숨김}`); return 답(404, { message: 'Not Found' }); }

@@ -96,10 +96,10 @@ export function 옛전달풀기(x) {
 export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진짜API, fetch: 부르기 = globalThis.fetch?.bind(globalThis), 기록 = console } = {}) {
   if (typeof 부르기 !== 'function') throw new Error('fetch가 없는 곳이다 — 이 통로를 쓸 수 없다');
 
-  // 붙잡기 — 참이면 페이지가 닫혀도 끝까지 가는 요청(keepalive)으로 보낸다 //
-  async function 요청(방법, 주소, 몸, 덧머리, 붙잡기 = false) {
+  // 붙잡기 — 참이면 페이지가 닫혀도 끝까지 가는 요청(keepalive)으로 보낸다 · 열쇠빼기 — 참이면 열쇠 없이 묻는다(공개 저장소) //
+  async function 요청(방법, 주소, 몸, 덧머리, 붙잡기 = false, 열쇠빼기 = false) {
     const 머리 = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(덧머리 || {}) };
-    if (열쇠) 머리.Authorization = `Bearer ${열쇠}`;
+    if (열쇠 && !열쇠빼기) 머리.Authorization = `Bearer ${열쇠}`;
     if (몸) 머리['Content-Type'] = 'application/json';
     const r = await 부르기(API + 주소, { method: 방법, headers: 머리, body: 몸 ? (typeof 몸 === 'string' ? 몸 : JSON.stringify(몸)) : undefined, cache: 'no-store', ...(붙잡기 ? { keepalive: true } : {}) });
     const 글 = await r.text();
@@ -234,5 +234,36 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     return { 결과: '못 보냄', 까닭: 실패('GitHub이 받지 않았다', r).message };
   }
 
-  return { 파일읽기, 파일목록, 저장소목록, 저장소커밋, 곳목록확인, 마지막커밋, 답파일만들기 };
+  // [관리부 작업 472] 관리부 설계 bp-프론트엔드 「상황판은 PC 앱과 모바일 앱 둘이고, 두 앱은 GitHub에 올라간 최신 판의 코드 한 벌로 돈다」 조 ⑥ — //
+  //   모바일 앱의 최종 판 = GitHub Pages가 올리기를 끝낸 status-board 커밋. 저장소에 커밋이 들어간 뒤 Pages가 올리기를 마치기까지 //
+  //   시간이 걸려, 저장소의 마지막 커밋으로 견주면 아직 옛 화면 파일을 받아 새 판으로 적는다. 그래서 Pages가 돌린 「pages build and //
+  //   deployment」 실행 가운데 끝까지 성공한 마지막 것의 커밋(head_sha)을 묻는다. 아직 도는 실행 · 실패한 실행의 커밋은 고르지 않는다. //
+  // ★status-board는 공개 저장소라 열쇠 없이도 읽힌다(2026-10-15 실측 200 · CORS *). 열쇠가 있으면 열쇠로 묻고(열쇠 없는 요청은 //
+  //   한 IP에 시간당 60번이라 통신사 IP를 나눠 쓰는 폰에서 모자랄 수 있다), 열쇠가 그 묻기를 막으면(401 · 403) 열쇠 없이 한 번 더 묻는다. //
+  // 돌려주는 것: 커밋 번호(sha). 못 알아내면 던진다(부르는 쪽이 「새 판 못 받음」의 까닭으로 적는다). //
+  const Pages실행이름 = 'pages build and deployment';
+  async function Pages판(저장소 = 'status-board') {
+    기록.log(`[GitHub 통로] START Pages판 — ${저장소}`);
+    const 주소 = `/repos/${주인}/${저장소}/actions/runs?event=dynamic&status=success&per_page=5`;
+    let r = await 요청('GET', 주소);
+    if ((r.상태 === 401 || r.상태 === 403) && 열쇠) {
+      기록.log(`[GitHub 통로] 열쇠로 Pages 실행을 못 물었다(${r.상태}) — 공개 저장소라 열쇠 없이 다시 묻는다`);
+      r = await 요청('GET', 주소, null, null, false, true);
+    }
+    if (r.상태 !== 200 || !r.값 || !Array.isArray(r.값.workflow_runs)) throw 실패(`GitHub Pages가 올린 커밋을 못 물었다: ${저장소}`, r);
+    const 끝난것 = r.값.workflow_runs.find((x) => x && x.name === Pages실행이름 && x.status === 'completed' && x.conclusion === 'success' && x.head_sha);
+    if (!끝난것) throw new Error(`GitHub Pages가 올리기를 끝낸 커밋을 못 찾았다: ${저장소} (최근 실행 ${r.값.workflow_runs.length}개 가운데 성공한 「${Pages실행이름}」 없음)`);
+    기록.log(`[GitHub 통로] SUCCESS Pages판 — ${저장소} ${String(끝난것.head_sha).slice(0, 7)}`);
+    return 끝난것.head_sha;
+  }
+
+  return { 파일읽기, 파일목록, 저장소목록, 저장소커밋, 곳목록확인, 마지막커밋, 답파일만들기, Pages판 };
 }
+
+// ── 판 맞추기 식 ─────────────────────────────────────────────────────── //
+// [관리부 작업 472] 관리부 설계 bp-프론트엔드 「상황판은 PC 앱과 모바일 앱 둘이고, 두 앱은 GitHub에 올라간 최신 판의 코드 한 벌로 돈다」 조 ⑥⑨ — //
+//   화면(app.mjs)이 판을 견줄 때 쓰는 식. PC 앱 켜개(관리부 tools/app-main.cjs)는 앱 안에 혼자 들어가야 해 같은 식을 따로 둔다. //
+//   새판 = (실린판 없음) OR (실린판 ≠ 최종판) //
+export const 새판인가 = (실린, 최종) => !실린 || 실린 !== 최종;
+//   판바꿈 = 새판 AND (결재 모듈이 알리는 보내는 중인 답 파일 없음) //
+export const 판바꿈 = (새판, 보내는수) => !!새판 && !보내는수;

@@ -1,6 +1,6 @@
 // GitHub 통로 `github.mjs`의 시험 — 메모리 안의 가짜 GitHub으로 돌리고, `--live`를 붙이면 공개 저장소를 실제로 읽는다. //
 // 따르는 설계: bp-백엔드의 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」 · bp-부서프로젝트목록의 「상황판은 의회와 작업은 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」 · bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」 · bp-백엔드의 「문서 저장소는 비공개로 두고, 상황판은 답 파일 자리에 새 답 파일만 만든다」(적어도됨과 답 파일 결과 갈래는 deliver.test.mjs) //
-import { 통로만들기 } from './github.mjs';
+import { 통로만들기, 새판인가, 판바꿈 } from './github.mjs';
 import { 이름짓기, 글짓기 } from './answer-file.mjs';
 
 let 통과 = 0; const 실패 = [];
@@ -154,6 +154,35 @@ console.log('[github 시험] START');
   확인('옛 지문으로 물으면 새 글과 새 지문을 받는다', 다름 && 다름.글 === '새 글' && 다름.지문 === '"e2"' && !다름.안바뀜, JSON.stringify(다름));
 }
 
+// [관리부 작업 472] bp-프론트엔드 「상황판은 PC 앱과 모바일 앱 둘이고, 두 앱은 GitHub에 올라간 최신 판의 코드 한 벌로 돈다」 조 ⑥⑨ — //
+//   새판 · 판바꿈 식과, 최종 판이 Pages가 올리기를 끝낸 커밋인지(아직 도는 실행의 커밋으로는 판을 바꾸지 않는다). //
+{
+  확인('새판 — 실린판이 없으면 참', 새판인가(null, 'abc') === true && 새판인가('', 'abc') === true);
+  확인('새판 — 실린판과 최종판이 같으면 거짓', 새판인가('abc', 'abc') === false);
+  확인('새판 — 실린판과 최종판이 다르면 참', 새판인가('abc', 'def') === true);
+  확인('판바꿈 — 새판이고 보내는 답 파일이 없으면 참', 판바꿈(true, 0) === true);
+  확인('판바꿈 — 보내는 답 파일이 있으면 거짓', 판바꿈(true, 1) === false);
+  확인('판바꿈 — 새판이 아니면 거짓', 판바꿈(false, 0) === false);
+
+  let 물음 = [];
+  const 실행들 = (목록, 상태 = 200) => ({ fetch: async (주소, 옵션) => { 물음.push({ 주소, 열쇠: !!옵션.headers.Authorization }); return { status: typeof 상태 === 'function' ? 상태(옵션) : 상태, text: async () => JSON.stringify({ workflow_runs: 목록 }) }; } });
+  const 성공 = (sha) => ({ name: 'pages build and deployment', status: 'completed', conclusion: 'success', head_sha: sha });
+  let 통로 = 통로만들기({ 열쇠: 'k', 기록: 조용히, ...실행들([{ ...성공('새것'), status: 'in_progress', conclusion: null }, { ...성공('딴것'), name: 'ci' }, 성공('옛것')]) });
+  확인('Pages판 — 아직 도는 실행 · 다른 실행을 건너 올리기를 끝낸 커밋을 고른다', await 통로.Pages판() === '옛것');
+  확인('Pages판 — status-board의 Pages 실행을 열쇠로 묻는다', /\/repos\/heyjay0811\/status-board\/actions\/runs\?/.test(물음[0].주소) && 물음[0].열쇠, JSON.stringify(물음));
+  물음 = [];
+  통로 = 통로만들기({ 열쇠: 'k', 기록: 조용히, ...실행들([성공('abc')], (옵션) => (옵션.headers.Authorization ? 403 : 200)) });
+  확인('Pages판 — 열쇠가 막히면(403) 열쇠 없이 다시 물어 받는다', await 통로.Pages판() === 'abc' && 물음.length === 2 && !물음[1].열쇠, JSON.stringify(물음));
+  통로 = 통로만들기({ 기록: 조용히, ...실행들([{ ...성공('x'), conclusion: 'failure' }]) });
+  let 던짐 = '';
+  try { await 통로.Pages판(); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
+  확인('Pages판 — 끝까지 성공한 실행이 없으면 「없다」로 덮지 않고 던진다', /못 찾았다/.test(던짐), 던짐);
+  통로 = 통로만들기({ 기록: 조용히, ...실행들([], 500) });
+  던짐 = '';
+  try { await 통로.Pages판(); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
+  확인('Pages판 — GitHub이 실패로 답하면 던진다', /못 물었다: status-board — GitHub 응답 500/.test(던짐), 던짐);
+}
+
 if (process.argv.includes('--live')) { // 공개 저장소를 실제로 읽는다 — 열쇠 없이 //
   const 통로 = 통로만들기({ 주인: 'heyjay0811', 기록: 조용히 });
   const 읽음 = await 통로.파일읽기('status-board', 'README.md');
@@ -161,6 +190,7 @@ if (process.argv.includes('--live')) { // 공개 저장소를 실제로 읽는�
   const 목록 = await 통로.파일목록('status-board');
   확인('실제 GitHub에서 파일 목록에 doc-parse.mjs가 있다', 목록.includes('doc-parse.mjs'), 목록.join(','));
   확인('실제 GitHub에서 마지막 커밋 시각을 받는다', /^\d{4}-\d\d-\d\dT/.test(await 통로.마지막커밋('status-board', 'README.md') || ''));
+  확인('실제 GitHub에서 Pages가 올리기를 끝낸 커밋을 열쇠 없이 받는다', /^[0-9a-f]{40}$/.test(await 통로.Pages판('status-board')));
 }
 console.log(실패.length ? `[github 시험] ERROR 통과 ${통과} · 실패 ${실패.length} — ${실패.join(' · ')}` : `[github 시험] SUCCESS ${통과}건 통과`);
 // 끝내기는 종료 코드만 둔다 — 실제 GitHub에 붙은 연결이 닫히는 도중에 process.exit()로 끊으면 //

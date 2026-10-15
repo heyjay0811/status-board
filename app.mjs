@@ -15,7 +15,7 @@
 // 작업 목록·설계 문서는 읽기만 한다. //
 // ★PC 앱은 이 파일을 모듈로 그대로 싣고(관리부 tools/progress.mjs), `window.상황판PC`로 PC 몫만 맡는다 — 곳의 차트·환경 칸 //
 //   (곳칸), 의회·설계실의 현황 칸(현황칸), 「↻ 다시 읽기」(다시읽기). 모바일 앱에는 이 이름이 없어 차트와 환경이 서지 않는다. //
-import { 통로만들기, 전달넣기, 전달걷기, 전달가름, 옛전달풀기 } from './github.mjs';
+import { 통로만들기, 전달넣기, 전달걷기, 전달가름, 옛전달풀기, 새판인가, 판바꿈 } from './github.mjs';
 import { 답자리, 이름꼴맞음, 이름짓기, 글짓기, 글읽기, 기기표지짓기, AI표지, 안이름, 최종답, 최종코멘트 } from './answer-file.mjs';
 import { PC통로만들기, PC문서통로있음 } from './pc-docs.mjs';
 import { 법안읽기, 고를답, 곳이름, 설계안묶기, 표시있음 } from './bill-parse.mjs';
@@ -1159,6 +1159,15 @@ async function 답보내기(a) {
 // 그물이 돌아오거나 화면이 다시 보이면 기다리지 않고 바로 보낸다 //
 addEventListener('online', () => { 기록('그물이 돌아왔다 — 기기에 남은 답을 보낸다'); 보내기(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && 전달줄.length) 보내기(); });
+// [관리부 작업 472] 판을 바꾸기 전에 보내는 중인 답 파일이 모두 결과를 받을 때까지 기다린다(bp-프론트엔드 「…최신 판의 코드 한 벌로 돈다」 조 ⑨ · bp-결재 제3조 ⑩) //
+function 보내기끝기다리기() {
+  if (!보내는이름.size) return Promise.resolve();
+  기록(`판을 바꾸기 전에 보내는 중인 답 파일 ${보내는이름.size}개가 결과를 받기를 기다린다 — ${[...보내는이름].join(' · ')}`);
+  return new Promise((풀기) => {
+    const 보기 = () => { if (보내는이름.size) { setTimeout(보기, 200); return; } 기록('보내는 중인 답 파일이 모두 결과를 받았다 — 판을 바꾼다'); 풀기(); };
+    보기();
+  });
+}
 
 // [관리부 작업 464] 2026-10-13 판이 기기에 남긴 전달 기록(sb.전달할답)을 답 파일로 지어 이 판의 기록(sb.보낼답파일)으로 옮기고 옛 칸을 지운다 — //
 //   자리(저장소 · 문서 · 안 · 무엇 · 줄) · 답(빈 답은 거둠) · 코멘트 글 · 누른 때(번 앞의 밀리초)를 그대로 쓴다. //
@@ -1202,6 +1211,8 @@ document.addEventListener('click', (e) => {
   const d = t.dataset;
   // 「전달 안 됨」 딱지 — 누르면 목록을 펼치고 다시 누르면 접는다. 줄기에 들지 않아 열린 박스는 그대로다(bp-결재 제3조 ⑪ · bp-프론트엔드 제7조 ⑦) //
   if (t.id === '전달딱지') { 상태.딱지펼침 = !상태.딱지펼침; 기록(`「전달 안 됨」 목록을 ${상태.딱지펼침 ? '펼친다' : '접는다'}`); 딱지그리기(); return; }
+  // [관리부 작업 472] 「새 판 못 받음」 딱지 — 누르면 까닭 한 줄을 펼치고 다시 누르면 접는다. 줄기에 들지 않는다(bp-프론트엔드 제4조 ⑪ · 제7조 ⑦) //
+  if (t.id === '새판딱지') { 상태.판펼침 = !상태.판펼침; 기록(`「새 판 못 받음」 까닭을 ${상태.판펼침 ? '펼친다' : '접는다'}`); 판딱지그리기(); return; }
   if (d.펼침) { 줄펼치기(d.펼침); return; }
   if (d.고정) { 줄고정(d.고정); return; }
   // bp-작업의 「상황판은 작업 제목을 누르면 그 작업의 작업 파일을 펼치고, 진행 현황의 지시를 누르면 그 지시의 보고를 펼친다」 — 지시를 누르면 그 지시의 보고를 바로 아래에 펼친다. //
@@ -1247,7 +1258,9 @@ const 코드알림열쇠 = '상황판:새로못받은파일';
 let 코드알림 = '';
 try { 코드알림 = sessionStorage.getItem(코드알림열쇠) || ''; sessionStorage.removeItem(코드알림열쇠); }
 catch (e) { 기록('ERROR 새로 못 받은 파일 알림을 못 읽었다: ' + e.message); }
-async function 화면코드새로받기() {
+// [관리부 작업 472] 판 — 최종 판(Pages가 올리기를 끝낸 커밋)으로 바꾸려고 부를 때 준다(아래 「판 맞추기」). 그때는 화면 코드를 다 받았을 때만 //
+//   기기에 실린판(sb.실린판)을 적고 다시 띄우며, 하나라도 못 받으면 다시 띄우지 않고 { ok: false, 까닭 }을 돌려준다 — 부른 쪽이 「새 판 못 받음」 딱지를 세운다. //
+async function 화면코드새로받기({ 판 = null } = {}) {
   const 주소들 = [location.href.split('#')[0]].concat(performance.getEntriesByType('resource')
     .filter((r) => r.name.startsWith(location.origin) && !new URL(r.name).pathname.startsWith('/api') && !['fetch', 'xmlhttprequest'].includes(r.initiatorType))
     .map((r) => r.name));
@@ -1256,7 +1269,16 @@ async function 화면코드새로받기() {
     try { const r = await fetch(주소, { cache: 'reload' }); if (!r.ok) 못받음.push(주소 + ' (' + r.status + ')'); }
     catch (e) { 기록('ERROR 화면 코드를 새로 못 받았다: ' + 주소 + ' — ' + e.message); 못받음.push(주소 + ' (' + e.message + ')'); }
   }));
-  기록(`다시 읽기 — 화면 코드 ${new Set(주소들).size}개를 새로 받음${못받음.length ? ' · 못 받음 ' + 못받음.length : ''}`);
+  기록(`${판 ? '판 바꾸기' : '다시 읽기'} — 화면 코드 ${new Set(주소들).size}개를 새로 받음${못받음.length ? ' · 못 받음 ' + 못받음.length : ''}`);
+  if (판) {
+    if (못받음.length) return { ok: false, 까닭: `최종 판 ${String(판).slice(0, 7)}의 화면 코드를 다 받지 못했다 — ${못받음.map((u) => u.replace(location.origin, '')).join(' · ')}` };
+    // 실린판을 못 적고 다시 띄우면 다음에 뜬 화면이 또 새판으로 보고 끝없이 다시 띄운다 — 못 적으면 바꾸지 않는다 //
+    if (!저장쓰기(실린판자리, 판)) return { ok: false, 까닭: `최종 판 ${String(판).slice(0, 7)}을 기기에 실린판으로 못 적어 판을 바꾸지 않았다(기기 저장이 막혀 있다)` };
+    기록(`SUCCESS 판 바꾸기 — 실린판을 ${String(판).slice(0, 7)}로 적고 화면을 다시 띄운다`);
+    try { sessionStorage.setItem(훑기열쇠, '1'); } catch (e) { 기록('ERROR 저장소 다시 훑기 표시를 못 남겼다 — 문서만 지문으로 맞춘다: ' + e.message); }
+    location.reload();
+    return { ok: true };
+  }
   if (못받음.length) {
     const 말 = '화면 코드 일부를 새로 못 받아 옛 사본으로 띄웠다: ' + 못받음.map((u) => u.replace(location.origin, '')).join(' · ');
     try { sessionStorage.setItem(코드알림열쇠, 말); } catch (e) { 기록('ERROR 알림을 못 남겼다: ' + e.message); }
@@ -1272,7 +1294,14 @@ const 훑기열쇠 = '상황판:저장소다시훑기';
 //   어느 쪽이든 다시 뜬 화면은 처음 연 것과 같다(bp-부서프로젝트목록의 「상황판은 PC 앱과 폰 모두 부서·프로젝트 단추를 늘어놓고, 고른 곳을 그 아래 뷰어에 펼친다」 — 고정이 풀리고 가장 최근 줄 하나만 펼친다). //
 // ★다시 띄우기 전에 열린 줄기를 비우고 쌓은 기록을 걷는다 — 다시 뜬 화면은 줄기가 비어 있으니 옛 자리가 남으면 이전 버튼이 헛돈다 //
 //   ([관리부 작업 461] bp-프론트엔드 「열린 것의 줄기와 폰의 이전 버튼」 ⑤). //
-document.getElementById('다시읽기').addEventListener('click', () => 줄기비우고(() => {
+// [관리부 작업 472] 「↻」는 먼저 판을 견주고(bp-프론트엔드 「…최신 판의 코드 한 벌로 돈다」 조 ⑥), 새 판으로 바꾸며 화면을 다시 띄웠으면 더 하지 않는다. //
+//   새 판이 아니거나 못 받았으면 늘 하던 다시 읽기를 한다. 누른 뒤 화면이 다시 뜰 때까지 단추를 막는다(개발 규칙 제11조). //
+document.getElementById('다시읽기').addEventListener('click', () => 줄기비우고(async () => {
+  const 단추 = document.getElementById('다시읽기');
+  if (단추.disabled) return;
+  단추.disabled = true;
+  if (await 판맞추기('↻ 다시 읽기')) return;
+  단추.disabled = false;
   if (PC && PC.다시읽기) {
     try { sessionStorage.setItem(훑기열쇠, '1'); } catch (e) { 기록('ERROR 저장소 다시 훑기 표시를 못 남겼다 — 문서만 지문으로 맞춘다: ' + e.message); }
     기록('다시 읽기 — PC 앱이 화면을 통째로 다시 만든다');
@@ -1324,7 +1353,97 @@ function 시작() {
   catch (e) { 기록('ERROR 저장소 다시 훑기 표시를 못 읽었다: ' + e.message); }
   모두읽기(훑기);
 }
+// ── 판 맞추기 ─────────────────────────────────────────────────────────── //
+// [관리부 작업 472] 관리부 설계 bp-프론트엔드 「상황판은 PC 앱과 모바일 앱 둘이고, 두 앱은 GitHub에 올라간 최신 판의 코드 한 벌로 돈다」 조 — //
+//   ⑥ 켤 때 · 「↻ 다시 읽기」 · 화면에서 내려가 있던 앱이 다시 보일 때 실린판과 최종판을 견주고, 새판 = (실린판 없음) OR (실린판 ≠ 최종판)이면 //
+//      묻지 않고 최종 판으로 덮은 뒤 화면을 다시 띄운다. //
+//      모바일 앱 — 최종판은 GitHub Pages가 올리기를 끝낸 status-board 커밋(github.mjs Pages판()), 실린판은 기기 칸 sb.실린판이다. //
+//        화면 코드를 다 받았을 때만 sb.실린판을 적는다(화면코드새로받기({ 판 })). //
+//      PC 앱 — 견주고 덮는 일은 앱의 켜개(관리부 tools/app-main.cjs)가 앱 전용 폴더에서 한다. 켤 때는 켜개가 이미 맞췄으니 그 결과만 받아 딱지를 그리고, //
+//        「↻」와 다시 보일 때는 견주기 → (보내기를 기다려) 바꾸기를 PC 통로로 부른다. 몸통이 바뀐 판이면 앱이 껐다 다시 켜고(⑬), 아니면 화면을 통째로 다시 만든다. //
+//   ⑧ 저장소에서 `electron .`으로 켠 개발 실행에는 판 통로가 없어 판을 맞추지 않는다(판 통로를 걸지 않는 옛 포장본도 같다). //
+//   ⑨ 판바꿈 = 새판 AND 보내는 중인 답 파일 없음 — 보내는 답 파일(보내는이름)이 모두 결과를 받을 때까지 지금 판으로 둔다. //
+//   ⑪ 못받음이면 지금 판으로 두고 머리 줄 「↻」 곁(「전달 안 됨」 딱지보다 왼쪽)에 「새 판 못 받음」 딱지를 세운다. 누르면 마지막으로 못 받은 까닭 한 줄을 //
+//      펼치고 다시 누르면 접는다. 다음에 최종판을 알아냈고 실린판이 그와 같아지면 걷는다. 펼침은 줄기에 들지 않는다(같은 파일 「열린 것의 줄기와 폰의 이전 버튼」 조 ⑦). //
+// ★기기 저장(답 기록 · 기기 표지 · 누른 번호 · 문서 사본)은 코드와 따로 있어 판을 바꿔도 남고, 새 판이 이어 읽는다(같은 조 ⑩). //
+const 실린판자리 = 'sb.실린판';
+상태.판 = { 못받음: false, 까닭: '' };
+상태.판펼침 = false;
+const 짧게 = (sha) => String(sha || '').slice(0, 7);
+const PC판통로 = () => (PC && window.상황판 && typeof window.상황판.판맞추기 === 'function' ? window.상황판 : null);
+function 판딱지그리기() {
+  const 딱지 = document.getElementById('새판딱지'), 줄 = document.getElementById('새판까닭');
+  if (!딱지 || !줄) return;
+  if (!상태.판.못받음) 상태.판펼침 = false;
+  딱지.hidden = !상태.판.못받음;
+  딱지.setAttribute('aria-expanded', String(상태.판펼침));
+  줄.hidden = !상태.판펼침;
+  줄.innerHTML = 상태.판펼침 ? `<li>${막기(상태.판.까닭 || '까닭을 못 받았다')}</li>` : '';
+}
+function 판알리기(못받음, 까닭 = '') {
+  상태.판 = { 못받음: !!못받음, 까닭: 못받음 ? 까닭 : '' };
+  기록(못받음 ? `ERROR 새 판 못 받음 — ${까닭} · 지금 판으로 돈다` : '판 — 실린판이 최종판과 같다(「새 판 못 받음」 딱지를 걷는다)');
+  판딱지그리기();
+}
+async function 폰판맞추기(때) {
+  let 최종;
+  try { 최종 = await 통로만들기({ 열쇠: 브라우저열쇠읽기(), API, 기록: { log: 기록 } }).Pages판('status-board'); }
+  catch (e) { 판알리기(true, `최종 판을 알아내지 못했다 — ${e.message}`); return false; }
+  const 실린 = 저장읽기(실린판자리, null);
+  if (!새판인가(실린, 최종)) { 기록(`SUCCESS 판 맞추기(${때}) — 실린판 ${짧게(실린)} = 최종판`); 판알리기(false); return false; }
+  기록(`판 맞추기(${때}) — 새판: 실린판 ${실린 ? 짧게(실린) : '없음'} · 최종판 ${짧게(최종)}`);
+  await 보내기끝기다리기();
+  if (!판바꿈(true, 보내는이름.size)) { 기록('ERROR 판 맞추기 — 기다린 뒤에도 보내는 답 파일이 있다 — 다음 견주는 때에 바꾼다'); return false; }
+  const r = await 화면코드새로받기({ 판: 최종 });
+  if (!r.ok) { 판알리기(true, r.까닭); return false; }
+  return true;
+}
+async function PC판맞추기(때, 통) {
+  const r = await 통.판맞추기({ 할일: '견주기' });
+  if (!r || !r.ok) { 판알리기(true, (r && r.이유) || '앱이 견준 결과를 안 돌려줬다'); return false; }
+  if (!r.새판) { 기록(`판 맞추기(${때}) — PC 앱: 새판 아님`); 판알리기(r.못받음, r.까닭); return false; }
+  기록(`판 맞추기(${때}) — PC 앱: 새판 ${JSON.stringify(r.실린판)} → ${JSON.stringify(r.최종판)}`);
+  await 보내기끝기다리기();
+  if (!판바꿈(true, 보내는이름.size)) { 기록('ERROR 판 맞추기 — 기다린 뒤에도 보내는 답 파일이 있다 — 다음 견주는 때에 바꾼다'); return false; }
+  const b = await 통.판맞추기({ 할일: '바꾸기', 머리: r.머리 });
+  if (!b || !b.ok) { 판알리기(true, (b && b.이유) || '앱이 바꾼 결과를 안 돌려줬다'); return false; }
+  판알리기(b.못받음, b.까닭);
+  if (b.다시켬) { 기록('판 맞추기 — 새 판이 몸통을 바꿔 앱이 껐다 다시 켠다'); return true; }
+  if (!b.바뀜) return false;
+  기록('판 맞추기 — 새 판으로 덮었다 — 통로와 화면을 다시 싣는다');
+  try { sessionStorage.setItem(훑기열쇠, '1'); } catch (e) { 기록('ERROR 저장소 다시 훑기 표시를 못 남겼다 — 문서만 지문으로 맞춘다: ' + e.message); }
+  PC.다시읽기();
+  return true;
+}
+// 돌려주는 것: 참이면 새 판으로 바꾸며 화면을 다시 띄우는 중이다(부른 쪽은 더 할 일이 없다). 한 번에 하나만 돈다 //
+let 판맞추는중 = null;
+function 판맞추기(때) {
+  const 통 = PC판통로();
+  if (PC && !통) return Promise.resolve(false);
+  if (판맞추는중) { 기록(`판 맞추기(${때}) — 이미 견주는 중이라 그 결과를 같이 기다린다`); return 판맞추는중; }
+  기록(`START 판 맞추기(${때})`);
+  판맞추는중 = (PC ? PC판맞추기(때, 통) : 폰판맞추기(때))
+    .catch((e) => { 판알리기(true, `판을 맞추다 멈췄다 — ${e && e.message ? e.message : e}`); return false; })
+    .finally(() => { 판맞추는중 = null; });
+  return 판맞추는중;
+}
+// 켤 때 — 모바일 앱은 견주고, PC 앱은 켜개가 켤 때 맞춘 결과로 딱지만 그린다 //
+async function 켤때판() {
+  const 통 = PC판통로();
+  if (!PC) { 판맞추기('켤 때'); return; }
+  if (!통) { 기록('판 — 이 PC 앱은 판을 맞추지 않는다(저장소에서 켠 개발 실행이거나 판 통로가 없는 옛 포장본)'); return; }
+  try {
+    const r = await 통.판맞추기({ 할일: '지난결과' });
+    if (!r || !r.ok) { 판알리기(true, (r && r.이유) || '앱이 켤 때 맞춘 결과를 안 돌려줬다'); return; }
+    기록(`판 — 켤 때 앱이 맞춘 판 ${JSON.stringify(r.실린판 || {})}`);
+    판알리기(r.못받음, r.까닭);
+  } catch (e) { 판알리기(true, `켤 때 맞춘 판을 못 물었다 — ${e.message}`); }
+}
+// 화면에서 내려가 있던 앱이 다시 보이면 견준다 //
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') 판맞추기('다시 보임'); });
+
 옛적을답지우기();
 옛전달옮기기();
 남은기록걷기();
 시작();
+켤때판();
