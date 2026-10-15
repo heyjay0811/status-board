@@ -18,6 +18,15 @@ console.log('[답 파일 시험] START');
   확인('틀린 기기 표지 · 번호는 던진다', 던짐(() => 이름짓기(Date.now(), 'ABC', 1)) && 던짐(() => 이름짓기(Date.now(), 'ab12cd34', 1000000)));
   const 표지 = 기기표지짓기();
   확인('기기 표지는 영문 소문자와 숫자 여덟 글자', /^[a-z0-9]{8}$/.test(표지), 표지);
+  // 첫 뽑기가 AI 표지 ai000000이 되게 난수를 꾸며도 다시 뽑는다(bp-결재 제1조 ④) //
+  {
+    const 원래 = globalThis.crypto.getRandomValues.bind(globalThis.crypto);
+    const 뽑기들 = [[0, 8, 26, 26, 26, 26, 26, 26], [1, 1, 1, 1, 1, 1, 1, 1]];
+    globalThis.crypto.getRandomValues = (배열) => { 배열.set(뽑기들.shift() ?? [2, 2, 2, 2, 2, 2, 2, 2]); return 배열; };
+    let 다시뽑은표지;
+    try { 다시뽑은표지 = 기기표지짓기(); } finally { globalThis.crypto.getRandomValues = 원래; }
+    확인('기기 표지는 AI 표지 ai000000이 나오면 다시 뽑는다', 다시뽑은표지 === 'bbbbbbbb', 다시뽑은표지);
+  }
   // 이름 차례 = 누른 차례 — 같은 기기에서 차례로 누르고, 다른 기기가 같은 밀리초에 눌러도 이름이 겹치지 않는다 //
   const t = Date.UTC(2026, 9, 14, 3, 15, 22, 123);
   const 누름 = [이름짓기(t, 'ab12cd34', 9), 이름짓기(t + 1, 'ab12cd34', 10), 이름짓기(t + 1000, 'ab12cd34', 11), 이름짓기(Date.UTC(2026, 10, 1), 'ab12cd34', 12)];

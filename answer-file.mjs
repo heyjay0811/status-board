@@ -23,11 +23,16 @@ export const 이름꼴맞음 = (이름) => 이름꼴.test(String(이름 ?? ''));
 const 이름시각 = (iso) => iso.replace(/[-:.]/g, '');
 const 시각풀기 = (s) => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(9, 11)}:${s.slice(11, 13)}:${s.slice(13, 15)}.${s.slice(15, 18)}Z`;
 
-// 기기 표지 — 상황판이 그 기기에서 처음 켜질 때 한 번 짓는다 //
+// 기기 표지 — 상황판이 그 기기에서 처음 켜질 때 한 번 짓는다. AI가 쓰는 표지 ai000000은 짓지 않는다(bp-결재 제1조 ④) //
+export const AI표지 = 'ai000000';
 export function 기기표지짓기() {
   const 글자 = 'abcdefghijklmnopqrstuvwxyz0123456789', 수 = new Uint8Array(8);
-  globalThis.crypto.getRandomValues(수);
-  return [...수].map((n) => 글자[n % 글자.length]).join('');
+  let 표지;
+  do {
+    globalThis.crypto.getRandomValues(수);
+    표지 = [...수].map((n) => 글자[n % 글자.length]).join('');
+  } while (표지 === AI표지);
+  return 표지;
 }
 
 // 누른 때(Date 또는 밀리초) · 기기 표지 · 누른 번호 → 답 파일 이름. 틀린 값이면 던진다 //
