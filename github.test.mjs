@@ -1,6 +1,6 @@
 // GitHub 통로 `github.mjs`의 시험 — 메모리 안의 가짜 GitHub으로 돌리고, `--live`를 붙이면 공개 저장소를 실제로 읽는다. //
 // 따르는 설계: bp-백엔드의 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」 · bp-부서프로젝트목록의 「상황판은 의회와 작업은 GitHub에서, 환경은 PC 폴더에서 그때그때 읽어서 보여 준다」 · bp-백엔드의 「상황판은 PC 앱과 모바일 앱 둘이고, 의회·설계실·작업 목록은 두 앱이 코드 한 벌을 함께 쓴다」 · bp-백엔드의 「문서 저장소는 비공개로 두고, 상황판은 답 파일 자리에 새 답 파일만 만든다」(적어도됨과 답 파일 결과 갈래는 deliver.test.mjs) //
-import { 통로만들기, 새판인가, 판바꿈 } from './github.mjs';
+import { 통로만들기, 새판인가, 판바꿈, 판글 } from './github.mjs';
 import { 이름짓기, 글짓기 } from './answer-file.mjs';
 
 let 통과 = 0; const 실패 = [];
@@ -168,11 +168,18 @@ console.log('[github 시험] START');
   const 실행들 = (목록, 상태 = 200) => ({ fetch: async (주소, 옵션) => { 물음.push({ 주소, 열쇠: !!옵션.headers.Authorization }); return { status: typeof 상태 === 'function' ? 상태(옵션) : 상태, text: async () => JSON.stringify({ workflow_runs: 목록 }) }; } });
   const 성공 = (sha) => ({ name: 'pages build and deployment', status: 'completed', conclusion: 'success', head_sha: sha });
   let 통로 = 통로만들기({ 열쇠: 'k', 기록: 조용히, ...실행들([{ ...성공('새것'), status: 'in_progress', conclusion: null }, { ...성공('딴것'), name: 'ci' }, 성공('옛것')]) });
-  확인('Pages판 — 아직 도는 실행 · 다른 실행을 건너 올리기를 끝낸 커밋을 고른다', await 통로.Pages판() === '옛것');
+  확인('Pages판 — 아직 도는 실행 · 다른 실행을 건너 올리기를 끝낸 커밋을 고른다', (await 통로.Pages판()).판 === '옛것');
   확인('Pages판 — status-board의 Pages 실행을 열쇠로 묻는다', /\/repos\/heyjay0811\/status-board\/actions\/runs\?/.test(물음[0].주소) && 물음[0].열쇠, JSON.stringify(물음));
   물음 = [];
   통로 = 통로만들기({ 열쇠: 'k', 기록: 조용히, ...실행들([성공('abc')], (옵션) => (옵션.headers.Authorization ? 403 : 200)) });
-  확인('Pages판 — 열쇠가 막히면(403) 열쇠 없이 다시 물어 받는다', await 통로.Pages판() === 'abc' && 물음.length === 2 && !물음[1].열쇠, JSON.stringify(물음));
+  확인('Pages판 — 열쇠가 막히면(403) 열쇠 없이 다시 물어 받는다', (await 통로.Pages판()).판 === 'abc' && 물음.length === 2 && !물음[1].열쇠, JSON.stringify(물음));
+  // [관리부 작업 473] 같은 조 ⑭ — Pages 실행에 온 커밋 시각(head_commit.timestamp)을 판과 함께 돌려주고, 없으면 시각은 null //
+  통로 = 통로만들기({ 기록: 조용히, ...실행들([{ ...성공('t1'), head_commit: { id: 't1', timestamp: '2026-10-15T04:31:35Z' } }]) });
+  let 받음 = await 통로.Pages판();
+  확인('Pages판 — 커밋 시각을 판과 함께 돌려준다', 받음.판 === 't1' && 받음.시각 === '2026-10-15T04:31:35Z', JSON.stringify(받음));
+  통로 = 통로만들기({ 기록: 조용히, ...실행들([성공('t2')]) });
+  받음 = await 통로.Pages판();
+  확인('Pages판 — 실행에 커밋 시각이 없으면 시각은 null(판은 그대로)', 받음.판 === 't2' && 받음.시각 === null, JSON.stringify(받음));
   통로 = 통로만들기({ 기록: 조용히, ...실행들([{ ...성공('x'), conclusion: 'failure' }]) });
   let 던짐 = '';
   try { await 통로.Pages판(); } catch (e) { console.log(`    (던짐: ${e.message})`); 던짐 = e.message; }
@@ -183,6 +190,15 @@ console.log('[github 시험] START');
   확인('Pages판 — GitHub이 실패로 답하면 던진다', /못 물었다: status-board — GitHub 응답 500/.test(던짐), 던짐);
 }
 
+// [관리부 작업 473] bp-프론트엔드 「…최신 판의 코드 한 벌로 돈다」 조 ⑭ — 판 시각은 그 기기의 현지 시각으로 「판 MM-DD HH:mm」 //
+{
+  const 현지 = new Date(2026, 0, 5, 7, 3);   // 이 기기의 현지 시각 1월 5일 07:03 //
+  확인('판글 — 현지 시각으로 「판 MM-DD HH:mm」(한 자리 수는 0을 채운다)', 판글(현지.toISOString()) === '판 01-05 07:03', 판글(현지.toISOString()));
+  const 늦은 = new Date(2026, 11, 31, 23, 59);
+  확인('판글 — 두 자리 달 · 날 · 시 · 분', 판글(늦은.toISOString()) === '판 12-31 23:59', 판글(늦은.toISOString()));
+  확인('판글 — 시각이 없거나 못 읽으면 null', 판글(null) === null && 판글('') === null && 판글('아무 글') === null);
+}
+
 if (process.argv.includes('--live')) { // 공개 저장소를 실제로 읽는다 — 열쇠 없이 //
   const 통로 = 통로만들기({ 주인: 'heyjay0811', 기록: 조용히 });
   const 읽음 = await 통로.파일읽기('status-board', 'README.md');
@@ -190,7 +206,8 @@ if (process.argv.includes('--live')) { // 공개 저장소를 실제로 읽는�
   const 목록 = await 통로.파일목록('status-board');
   확인('실제 GitHub에서 파일 목록에 doc-parse.mjs가 있다', 목록.includes('doc-parse.mjs'), 목록.join(','));
   확인('실제 GitHub에서 마지막 커밋 시각을 받는다', /^\d{4}-\d\d-\d\dT/.test(await 통로.마지막커밋('status-board', 'README.md') || ''));
-  확인('실제 GitHub에서 Pages가 올리기를 끝낸 커밋을 열쇠 없이 받는다', /^[0-9a-f]{40}$/.test(await 통로.Pages판('status-board')));
+  const 실제판 = await 통로.Pages판('status-board');
+  확인('실제 GitHub에서 Pages가 올리기를 끝낸 커밋과 그 시각을 열쇠 없이 받는다', /^[0-9a-f]{40}$/.test(실제판.판) && !!판글(실제판.시각), JSON.stringify(실제판));
 }
 console.log(실패.length ? `[github 시험] ERROR 통과 ${통과} · 실패 ${실패.length} — ${실패.join(' · ')}` : `[github 시험] SUCCESS ${통과}건 통과`);
 // 끝내기는 종료 코드만 둔다 — 실제 GitHub에 붙은 연결이 닫히는 도중에 process.exit()로 끊으면 //

@@ -240,7 +240,8 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
   //   deployment」 실행 가운데 끝까지 성공한 마지막 것의 커밋(head_sha)을 묻는다. 아직 도는 실행 · 실패한 실행의 커밋은 고르지 않는다. //
   // ★status-board는 공개 저장소라 열쇠 없이도 읽힌다(2026-10-15 실측 200 · CORS *). 열쇠가 있으면 열쇠로 묻고(열쇠 없는 요청은 //
   //   한 IP에 시간당 60번이라 통신사 IP를 나눠 쓰는 폰에서 모자랄 수 있다), 열쇠가 그 묻기를 막으면(401 · 403) 열쇠 없이 한 번 더 묻는다. //
-  // 돌려주는 것: 커밋 번호(sha). 못 알아내면 던진다(부르는 쪽이 「새 판 못 받음」의 까닭으로 적는다). //
+  // 돌려주는 것: { 판: 커밋 번호(sha), 시각: 그 커밋의 시각(실행의 head_commit.timestamp · ISO — 없으면 null) }. 못 알아내면 던진다 //
+  //   (부르는 쪽이 「새 판 못 받음」의 까닭으로 적는다). 시각은 [관리부 작업 473] 같은 조 ⑭의 머리 줄 「판 MM-DD HH:mm」에 쓴다. //
   const Pages실행이름 = 'pages build and deployment';
   async function Pages판(저장소 = 'status-board') {
     기록.log(`[GitHub 통로] START Pages판 — ${저장소}`);
@@ -253,8 +254,9 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     if (r.상태 !== 200 || !r.값 || !Array.isArray(r.값.workflow_runs)) throw 실패(`GitHub Pages가 올린 커밋을 못 물었다: ${저장소}`, r);
     const 끝난것 = r.값.workflow_runs.find((x) => x && x.name === Pages실행이름 && x.status === 'completed' && x.conclusion === 'success' && x.head_sha);
     if (!끝난것) throw new Error(`GitHub Pages가 올리기를 끝낸 커밋을 못 찾았다: ${저장소} (최근 실행 ${r.값.workflow_runs.length}개 가운데 성공한 「${Pages실행이름}」 없음)`);
-    기록.log(`[GitHub 통로] SUCCESS Pages판 — ${저장소} ${String(끝난것.head_sha).slice(0, 7)}`);
-    return 끝난것.head_sha;
+    const 시각 = (끝난것.head_commit && 끝난것.head_commit.timestamp) || null;
+    기록.log(`[GitHub 통로] SUCCESS Pages판 — ${저장소} ${String(끝난것.head_sha).slice(0, 7)} · 커밋 시각 ${시각 || '모름'}`);
+    return { 판: 끝난것.head_sha, 시각 };
   }
 
   return { 파일읽기, 파일목록, 저장소목록, 저장소커밋, 곳목록확인, 마지막커밋, 답파일만들기, Pages판 };
@@ -267,3 +269,11 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
 export const 새판인가 = (실린, 최종) => !실린 || 실린 !== 최종;
 //   판바꿈 = 새판 AND (결재 모듈이 알리는 보내는 중인 답 파일 없음) //
 export const 판바꿈 = (새판, 보내는수) => !!새판 && !보내는수;
+// [관리부 작업 473] 같은 조 ⑭ — 머리 줄 앱 이름 옆에 지금 실린 판의 커밋 시각을 그 기기의 현지 시각으로 「판 MM-DD HH:mm」처럼 보인다. //
+//   머리 줄에 이미 있는 「원본과 맞춤 …」 시각과 헷갈리지 않게 「판」을 앞에 붙인다. 시각을 못 읽으면 null(부르는 쪽이 판 칸을 숨긴다). //
+const 두자 = (n) => String(n).padStart(2, '0');
+export function 판글(시각) {
+  const d = 시각 ? new Date(시각) : null;
+  if (!d || Number.isNaN(d.getTime())) return null;
+  return `판 ${두자(d.getMonth() + 1)}-${두자(d.getDate())} ${두자(d.getHours())}:${두자(d.getMinutes())}`;
+}

@@ -25,6 +25,12 @@ a { color: var(--강조); }
 .머리 { flex: none; position: relative; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 16px; background: var(--바탕); border-bottom: 1px solid var(--선); }
 .앱이름 { font-size: 18px; font-weight: 700; }
 .시각 { order: 3; flex-basis: 100%; font-size: 12px; color: var(--흐린); }
+/* [관리부 작업 473] bp-프론트엔드 「…최신 판의 코드 한 벌로 돈다」 조 ⑭ — 앱 이름 옆 「판 MM-DD HH:mm」. 글은 아래 줄 시각과 같은 작은 흐린 글이고, 한 줄로 선다.
+   누르면(aria-expanded) · 마우스를 올리면(마우스가 있는 기기만 — 폰에서 누른 뒤 남는 hover로 접히지 않는 일을 막는다) 커밋 번호를 덧붙인다. */
+.판 { border: 0; background: none; padding: 0; font: inherit; font-size: 12px; color: var(--흐린); white-space: nowrap; cursor: pointer; }
+.판[hidden], .판커밋 { display: none; }
+.판[aria-expanded="true"] .판커밋 { display: inline; }
+@media (hover: hover) { .판:hover .판커밋 { display: inline; } }
 #다시읽기 { margin-left: auto; }
 /* [관리부 작업 464] bp-결재 「찍은 답을 원본까지 전달하기와 「전달 안 됨」 딱지」 조 ⑦⑪ — 「↻」 곁의 「전달 안 됨 N」 딱지와 그 아래로 펼치는 목록.
    목록은 머리 줄에 매달려 뷰어·박스 위에 뜬다 — 목록 칸과 박스 칸에는 아무것도 끼워 넣지 않는다. 색은 theme.css 이름표(지움·바탕·선·흐린·글)만 쓴다. */
