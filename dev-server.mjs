@@ -8,6 +8,8 @@
 //   `SB_READ_FAIL=작업-448`처럼 주면 경로에 그 조각이 든 파일은 목록에는 있고 읽기만 500이다 — 못 읽었을 때의 화면을 잰다. //
 //   `SB_LIST_FAIL=knowledge`면 그 저장소의 커밋 묻기와 파일 목록이 500이다 — 파일 목록을 못 확인한 곳의 화면을 잰다. //
 //   사본 폴더(시작할 때 찍는 경로)에 파일을 만들거나 지우면 GitHub에 커밋해 올린 것처럼 저장소 커밋 번호가 바뀐다. //
+//   [관리부 작업 464] 파일 지문(sha) 없는 PUT은 새 파일 만들기다(없으면 201 · 같은 이름이 있으면 422). 돌리는 중에 //
+//   `/__시험?쓰기지연=ms&쓰기끊기=1&응답잃기=1`로 쓰기를 늦추거나 끊거나 응답을 잃게 한다(아래 「시험 갈래」). //
 // 한계: 저장소 여덟 곳의 docs 문서 몇백 개까지만 생각했다 · 바꿀 때: 시험할 문서가 수천 개가 되면 필요한 파일만 복사한다. //
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, copyFileSync } from 'node:fs';
@@ -19,7 +21,9 @@ import { fileURLToPath } from 'node:url';
 const 여기 = dirname(fileURLToPath(import.meta.url));
 const 관리부 = process.env.SB_MANAGEMENT || join(여기, '..', 'management');
 // 쓰기를 일부러 늦춘다(밀리초) — 진짜 GitHub이 커밋에 2~3초 걸리는 것을 흉내 내어, 찍자마자 벗어나는 경우를 잰다 //
-const 쓰기지연 = Number(process.env.SB_WRITE_DELAY_MS || 0);
+// [관리부 작업 464] 시험 갈래 — 돌리는 중에 `GET /__시험?쓰기지연=ms&쓰기끊기=1&응답잃기=1`로 바꾼다(빈 값이나 0이면 끈다). //
+//   쓰기끊기 — 쓰기(PUT)를 받지 않고 연결을 끊는다(그물이 끊긴 것 흉내). 응답잃기 — 파일은 만들고 응답 없이 연결을 끊는다(응답을 잃은 것 흉내). //
+const 갈래 = { 쓰기지연: Number(process.env.SB_WRITE_DELAY_MS || 0), 쓰기끊기: false, 응답잃기: false };
 const 포트 = Number(process.env.PORT || 8787);
 
 // 저장소 이름 → 진짜 폴더. 관리부 · 관리부 아래 부서 둘 · projects 아래 프로젝트. //
@@ -43,6 +47,12 @@ for (const [이름, 폴더] of Object.entries(저장소들)) {
   if (existsSync(작업)) {
     mkdirSync(join(사본, 'docs', '작업'), { recursive: true });
     for (const f of readdirSync(작업)) if (f.endsWith('.md')) copyFileSync(join(작업, f), join(사본, 'docs', '작업', f));
+  }
+  // [관리부 작업 464] 답 파일 자리(docs/답/*.json) — 진짜 저장소에 있으면 함께 옮긴다 //
+  const 답 = join(docs, '답');
+  if (existsSync(답)) {
+    mkdirSync(join(사본, 'docs', '답'), { recursive: true });
+    for (const f of readdirSync(답)) if (f.endsWith('.json')) copyFileSync(join(답, f), join(사본, 'docs', '답', f));
   }
   if (existsSync(join(폴더, '.claude'))) { mkdirSync(join(사본, '.claude'), { recursive: true }); writeFileSync(join(사본, '.claude', 'settings.json'), '{}'); }
 }
@@ -70,6 +80,11 @@ const 서버 = createServer((요청, 응답) => {
     요청.늦췄음 = true; setTimeout(() => 서버.emit('request', 요청, 응답), 읽기지연); return;
   }
   const 답 = (상태, 값) => { 응답.writeHead(상태, { 'Content-Type': 'application/json; charset=utf-8' }); 응답.end(JSON.stringify(값)); };
+  if (경로 === '/__시험') {
+    for (const k of ['쓰기지연', '쓰기끊기', '응답잃기']) if (u.searchParams.has(k)) { const v = u.searchParams.get(k); 갈래[k] = k === '쓰기지연' ? Number(v || 0) : v === '1'; }
+    console.log(`[시험 서버] 시험 갈래 — ${JSON.stringify(갈래)}`);
+    return 답(200, { ...갈래, 뿌리 });
+  }
   try {
     if (!경로.startsWith('/api/')) {   // 화면 파일 — 이 저장소 폴더 안만 내준다 //
       const 파일 = join(여기, 경로 === '/' ? 'index.html' : 경로);
@@ -131,20 +146,32 @@ const 서버 = createServer((요청, 응답) => {
         if (/^Bearer wrong/.test(요청.headers.authorization || '')) {
           요청.resume();
           console.log(`[시험 서버] 쓰기 거절(401, 쓰기만 막히는 열쇠) — ${m[1]}/${m[2]}`);
-          return setTimeout(() => 답(401, { message: 'Bad credentials' }), 쓰기지연);
+          return setTimeout(() => 답(401, { message: 'Bad credentials' }), 갈래.쓰기지연);
         }
+        if (갈래.쓰기끊기) { console.log(`[시험 서버] 시험 갈래 — 쓰기를 받지 않고 연결을 끊는다: ${m[1]}/${m[2]}`); 요청.socket.destroy(); return; }
+        if (!existsSync(join(뿌리, m[1]))) { 요청.resume(); return 답(404, { message: 'Not Found' }); }
         let 몸 = ''; 요청.on('data', (c) => { 몸 += c; });
         요청.on('end', () => setTimeout(() => {
           try {
             const 값 = JSON.parse(몸);
-            if (!existsSync(파일) || 지문(readFileSync(파일)) !== 값.sha) return 답(409, { message: 'sha does not match' });
             const 새글 = Buffer.from(값.content, 'base64');
+            const 커밋답 = () => ({ content: { sha: 지문(새글) }, commit: { sha: 지문(새글), committer: { date: new Date().toISOString() } } });
+            // [관리부 작업 464] 파일 지문(sha) 없는 PUT은 새 파일 만들기다 — 진짜 GitHub처럼 없으면 만들고 201, 같은 이름이 있으면 422(고치지 않는다) //
+            if (값.sha === undefined) {
+              if (existsSync(파일)) { console.log(`[시험 서버] 같은 이름이 이미 있다(422) — ${m[1]}/${m[2]}`); return 답(422, { message: 'Invalid request.\n\n"sha" wasn\'t supplied.' }); }
+              mkdirSync(dirname(파일), { recursive: true });
+              writeFileSync(파일, 새글);
+              console.log(`[시험 서버] 새 파일 커밋 — ${m[1]}/${m[2]}: ${값.message}`);
+              if (갈래.응답잃기) { console.log('[시험 서버] 시험 갈래 — 응답 없이 연결을 끊는다'); 응답.socket.destroy(); return; }
+              return 답(201, 커밋답());
+            }
+            if (!existsSync(파일) || 지문(readFileSync(파일)) !== 값.sha) return 답(409, { message: 'sha does not match' });
             writeFileSync(파일, 새글);
             console.log(`[시험 서버] 커밋 — ${m[1]}/${m[2]}: ${값.message}`);
             // 진짜 GitHub처럼 새 파일 지문과 커밋 시각을 돌려준다 — 화면이 이 값으로 다시 읽지 않고 그린다 //
-            답(200, { content: { sha: 지문(새글) }, commit: { sha: 지문(새글), committer: { date: new Date().toISOString() } } });
+            답(200, 커밋답());
           } catch (e) { console.error(`[시험 서버] ERROR 쓰기 실패: ${e.message}`); 답(500, { message: e.message }); }
-        }, 쓰기지연));
+        }, 갈래.쓰기지연));
         return;
       }
     }
