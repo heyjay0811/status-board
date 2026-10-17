@@ -61,6 +61,8 @@ a { color: var(--강조); }
 .뷰어칸 { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 10px 16px calc(16px + env(safe-area-inset-bottom)); }
 .안내 { color: var(--흐린); }
 .오류 { color: var(--빨강글); background: var(--빨강); padding: 8px 10px; border-radius: 6px; }
+/* [관리부 작업 482] 현재 작업 현황 틀 — 보이는 뷰어 칸 높이만큼 세워 그 안에서 따로 굴린다(bp-부서프로젝트목록 제3조 ⑰) */
+.현황틀 { display: block; width: 100%; height: max(360px, calc(var(--뷰어높이, 70vh) - 28px)); border: 1px solid var(--선); border-radius: 8px; background: var(--바탕); }
 
 .수 { min-width: 1.8em; padding: 0 7px; border-radius: 10px; background: var(--칸); border: 1px solid var(--선); font-size: 12px; text-align: center; color: var(--글); white-space: nowrap; }
 .고정단추 { flex: none; border: 1px solid transparent; background: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; filter: grayscale(1); opacity: .45; }

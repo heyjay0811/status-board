@@ -97,13 +97,15 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
   if (typeof 부르기 !== 'function') throw new Error('fetch가 없는 곳이다 — 이 통로를 쓸 수 없다');
 
   // 붙잡기 — 참이면 페이지가 닫혀도 끝까지 가는 요청(keepalive)으로 보낸다 · 열쇠빼기 — 참이면 열쇠 없이 묻는다(공개 저장소) //
-  async function 요청(방법, 주소, 몸, 덧머리, 붙잡기 = false, 열쇠빼기 = false) {
+  // 날글 — 참이면 응답을 JSON으로 풀지 않고 글 그대로 둔다(파일 원문을 받을 때 — [관리부 작업 482]) //
+  async function 요청(방법, 주소, 몸, 덧머리, 붙잡기 = false, 열쇠빼기 = false, 날글 = false) {
     const 머리 = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(덧머리 || {}) };
     if (열쇠 && !열쇠빼기) 머리.Authorization = `Bearer ${열쇠}`;
     if (몸) 머리['Content-Type'] = 'application/json';
     const r = await 부르기(API + 주소, { method: 방법, headers: 머리, body: 몸 ? (typeof 몸 === 'string' ? 몸 : JSON.stringify(몸)) : undefined, cache: 'no-store', ...(붙잡기 ? { keepalive: true } : {}) });
     const 글 = await r.text();
     let 값 = null;
+    if (날글) return { 상태: r.status, 값: 글, 지문: r.headers && r.headers.get ? r.headers.get('etag') : null };
     // GitHub은 보통 JSON을 주지만 오류 쪽은 글 그대로 올 때가 있다 — 그때는 글을 값으로 두고 남긴다 //
     try { 값 = 글 ? JSON.parse(글) : null; } catch (e) { 기록.log(`[GitHub 통로] 응답이 JSON이 아니다(${r.status}) — 글 그대로 쓴다: ${e.message}`); 값 = 글; }
     return { 상태: r.status, 값, 지문: r.headers && r.headers.get ? r.headers.get('etag') : null };
@@ -118,6 +120,19 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     const r = await 요청('GET', `/repos/${주인}/${저장소}/contents/${경로감싸기(경로)}`, null, 지문 ? { 'If-None-Match': 지문 } : null);
     if (r.상태 === 304) { 기록.log(`[GitHub 통로] SUCCESS 안 바뀜 — ${저장소}/${경로}`); return { 안바뀜: true, 지문 }; }
     if (r.상태 === 404) { 기록.log(`[GitHub 통로] SUCCESS 파일 없음 — ${저장소}/${경로}`); return null; }
+    // [관리부 작업 482] 1MB가 넘는 파일(현재 작업 현황 HTML 같은 것)은 GitHub이 JSON에 글을 담지 않는다 — 글 칸이 비고 encoding이 //
+    //   none이거나, 403 too_large가 온다. 그때는 원문(raw)으로 다시 받는다(bp-백엔드 제2조 ①의 현재 작업 현황 HTML 읽기). //
+    const 큼 = (r.상태 === 200 && r.값 && r.값.type === 'file' && r.값.encoding === 'none')
+      || (r.상태 === 403 && r.값 && Array.isArray(r.값.errors) && r.값.errors.some((x) => x && x.code === 'too_large'));
+    if (큼) {
+      기록.log(`[GitHub 통로] 파일이 1MB를 넘어 원문으로 다시 받는다 — ${저장소}/${경로}`);
+      const 원 = await 요청('GET', `/repos/${주인}/${저장소}/contents/${경로감싸기(경로)}`, null, { Accept: 'application/vnd.github.raw+json', ...(지문 ? { 'If-None-Match': 지문 } : {}) }, false, false, true);
+      if (원.상태 === 304) { 기록.log(`[GitHub 통로] SUCCESS 안 바뀜(원문) — ${저장소}/${경로}`); return { 안바뀜: true, 지문 }; }
+      if (원.상태 === 404) { 기록.log(`[GitHub 통로] SUCCESS 파일 없음 — ${저장소}/${경로}`); return null; }
+      if (원.상태 !== 200) throw 실패(`파일 원문을 못 읽었다: ${저장소}/${경로}`, { 상태: 원.상태, 값: null });
+      기록.log(`[GitHub 통로] SUCCESS 파일읽기(원문) — ${저장소}/${경로} ${원.값.length}자`);
+      return { 글: 원.값, sha: (r.값 && r.값.sha) || null, 지문: 원.지문 };
+    }
     if (r.상태 !== 200 || !r.값 || r.값.type !== 'file') throw 실패(`파일을 못 읽었다: ${저장소}/${경로}`, r);
     const 글 = b64를글(r.값.content);
     기록.log(`[GitHub 통로] SUCCESS 파일읽기 — ${저장소}/${경로} ${글.length}자`);
