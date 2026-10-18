@@ -172,6 +172,9 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .표시단추:hover, .표시단추.쓰는중 { border-color: var(--표색); }
 .표시단추.찍힘 { border-color: var(--표색); background: color-mix(in srgb, var(--표색) 22%, var(--바탕)); font-weight: 700; }
 .찍힌글 { font-size: 13px; color: var(--흐린); overflow-wrap: anywhere; }
+/* [관리부 작업 492] 정할 것 단추 넷은 폰에서도 한 줄에 선다(bp-작업 제2조 ⑩) — 넷이 폭을 나눠 갖고, 찍힌 글은 그 아래 줄로 */
+.정할것 .표시단추 { flex: 1 1 0; min-width: 0; padding: 0 4px; white-space: nowrap; }
+.정할것 .찍힌글 { flex-basis: 100%; }
 .작업쓰기 { padding: 0 4px 10px; }
 .작업쓰기 textarea, .턴코멘트, .옵션밖 { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); color: var(--글); }
 .작업쓰기발, .턴발 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; }
