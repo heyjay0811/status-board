@@ -141,6 +141,38 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .줄 { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--선); padding: 10px 4px; cursor: pointer; }
 .줄.열림 { background: var(--칸); }
 .줄 .제목 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* [관리부 작업 487] 작업 줄 — 작업 파일을 펼치는 제목(.줄)과 그 아래 단추 줄(표시 단추 ✅ · ❓ · ❌ · 💬, bp-결재 제2조 ③ ⑧) */
+.작업줄 { border-bottom: 1px solid var(--선); }
+.작업줄 > .줄 { border-bottom: 0; padding-bottom: 4px; }
+.작업줄.열림 { background: var(--칸); }
+.작업줄.열림 > .줄 { background: none; }
+.표시줄 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 4px 8px; }
+.표시단추 { min-width: 36px; height: 30px; padding: 0 6px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); cursor: pointer; font-size: 15px; line-height: 1; filter: grayscale(.6); }
+.표시단추:hover { border-color: var(--강조); filter: none; }
+.표시단추.찍힘 { filter: none; border-color: var(--강조); outline: 2px solid var(--강조); background: color-mix(in srgb, var(--강조) 10%, var(--바탕)); }
+.표시단추.쓰는중 { filter: none; border-color: var(--강조); }
+.찍힌글 { font-size: 13px; color: var(--흐린); overflow-wrap: anywhere; }
+.작업쓰기 { padding: 0 4px 10px; }
+.작업쓰기 textarea, .턴코멘트, .옵션밖 { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); color: var(--글); }
+.작업쓰기발, .턴발 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; }
+/* [관리부 작업 487] 턴 절 — 앞 턴은 턴줄 한 줄, 마지막 턴만 펼쳐 정할 것마다 옵션 단추(bp-작업 제3조 ⑦ · bp-결재 제2조 ③) */
+.턴목록 { margin: 4px 0 8px; }
+.앞턴 { font-size: 13px; color: var(--흐린); padding: 4px 2px; border-bottom: 1px dashed var(--선); overflow-wrap: anywhere; }
+.마지막턴 { margin-top: 8px; padding: 10px; border: 1px solid var(--강조); border-radius: 8px; background: color-mix(in srgb, var(--강조) 5%, var(--바탕)); }
+.턴머리 { font-weight: 700; overflow-wrap: anywhere; }
+.턴사용자 { margin: 4px 0 8px; color: var(--흐린); overflow-wrap: anywhere; }
+.정할것 { margin: 10px 0; padding-top: 8px; border-top: 1px solid var(--선); }
+.정할것머리 { margin-bottom: 6px; overflow-wrap: anywhere; }
+.옵션들 { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.옵션단추 { text-align: left; padding: 8px 10px; border: 1px solid var(--선); border-radius: 8px; background: var(--바탕); color: var(--글); font: inherit; font-size: 14px; cursor: pointer; overflow-wrap: anywhere; }
+.옵션단추:hover { border-color: var(--강조); }
+.옵션단추.고름 { border-color: var(--강조); outline: 2px solid var(--강조); background: color-mix(in srgb, var(--강조) 12%, var(--바탕)); }
+.옵션단추.추천고름 { border-style: dashed; border-color: var(--강조); }
+.옵션글 { font-size: 14px; padding: 4px 2px; overflow-wrap: anywhere; }
+.추천표 { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 10px; background: color-mix(in srgb, var(--강조) 15%, var(--바탕)); color: var(--강조); font-weight: 600; }
+.이대로진행 { padding: 8px 18px; border-radius: 8px; border: 1px solid var(--강조); background: var(--강조); color: #fff; font-weight: 700; cursor: pointer; }
+.이대로진행:disabled { opacity: .45; cursor: not-allowed; }
+.보낸턴 { margin: 8px 0; padding: 6px 8px; border-radius: 6px; background: var(--초록); color: var(--초록글); font-size: 13px; overflow-wrap: anywhere; }
 .딱지 { display: inline-block; font-size: 11px; line-height: 1.6; padding: 0 6px; border-radius: 10px; border: 1px solid var(--선); color: var(--흐린); white-space: nowrap; }
 .딱지.답 { border-color: var(--강조); color: var(--강조); }
 .딱지.출처 { border-color: var(--글); color: var(--글); background: var(--머리); font-weight: 700; }
