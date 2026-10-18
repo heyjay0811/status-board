@@ -63,6 +63,23 @@ a { color: var(--강조); }
 .오류 { color: var(--빨강글); background: var(--빨강); padding: 8px 10px; border-radius: 6px; }
 /* [관리부 작업 482] 현재 작업 현황 틀 — 보이는 뷰어 칸 높이만큼 세워 그 안에서 따로 굴린다(bp-부서프로젝트목록 제3조 ⑰) */
 .현황틀 { display: block; width: 100%; height: max(360px, calc(var(--뷰어높이, 70vh) - 28px)); border: 1px solid var(--선); border-radius: 8px; background: var(--바탕); }
+/* [관리부 작업 487 · 2/3단계] 현재 작업 현황(bp-현재작업현황 제3조) — 곳 단추 줄 · 14px 곳 색 선로 · 대화 차례 줄. 곳 색(--곳)은 테두리 · 선로 · 점 · 줄 제목에만, 펼친 내용은 보통 글 색 */
+.현황곳줄 { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 10px; }
+.현황곳단추 { flex: none; padding: 4px 10px; border: 1.5px solid var(--곳); border-radius: 14px; background: var(--바탕); color: var(--글); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.현황곳단추.꺼짐 { opacity: .4; border-style: dashed; }
+.현황줄 { border-bottom: 1px solid var(--선); }
+.현황머리 { display: flex; align-items: stretch; gap: 8px; width: 100%; padding: 0 4px 0 0; border: 0; background: none; color: var(--글); font: inherit; text-align: left; cursor: pointer; }
+.현황줄.펼침 > .현황머리 { background: var(--칸); }
+.선로들 { flex: none; display: flex; }
+.선로 { position: relative; width: 14px; }
+.선로::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--곳); opacity: .55; }
+.선로.점::after { content: ''; position: absolute; left: 2px; top: 14px; width: 10px; height: 10px; border-radius: 50%; background: var(--곳); }
+.현황글 { flex: 1; min-width: 0; padding: 8px 0; overflow-wrap: anywhere; font-size: 14px; }
+.현황시각 { color: var(--흐린); font-size: 12px; font-variant-numeric: tabular-nums; }
+.현황제목 { font-weight: 600; }
+.현황상세 { display: flex; gap: 8px; }
+.현황상세몸 { flex: 1; min-width: 0; padding: 0 4px 10px 0; }
+.현황상세몸 .마지막턴 { margin-top: 0; }
 
 .수 { min-width: 1.8em; padding: 0 7px; border-radius: 10px; background: var(--칸); border: 1px solid var(--선); font-size: 12px; text-align: center; color: var(--글); white-space: nowrap; }
 .고정단추 { flex: none; border: 1px solid transparent; background: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; filter: grayscale(1); opacity: .45; }
