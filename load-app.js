@@ -35,17 +35,38 @@
         return Promise.all(다음.map(걷기));
       });
     };
-    return 걷기(첫주소).then(function () { return 못읽음; });
+    return 걷기(첫주소).then(function () { return { 못읽음: 못읽음, 주소들: Object.keys(본것) }; });
   };
   console.log('[상황판] START 화면 코드 싣기 — ' + 첫주소);
+  // [관리부 작업 443 · 492] 화면 코드 파일은 GitHub Pages가 파일마다 10분까지 받아 둔 것을 쓰게 해, 새 판을 올린 직후에는 //
+  //   새 파일과 옛 파일이 섞여 「…does not provide an export…」로 멈출 수 있다. 그때는 받아 둔 화면 코드를 모두 캐시를 무시하고 //
+  //   새로 받은 뒤 한 번 다시 띄운다(같은 창에서 한 번만 — 기기 칸 sb.새로받음). 다시 띄워도 안 되면 알리고, 「↻」를 누르면 다시 해 본다. //
+  //   「↻」를 받는 코드는 app.mjs 안에 있어 화면 코드가 멈추면 같이 멈추므로, 멈춘 때의 「↻」는 여기서 받는다. //
+  //   PC 앱(file://)은 PC 폴더를 바로 읽어 섞이지 않으므로 하지 않는다. //
+  var 칸 = 'sb.새로받음';
+  var 칸읽기 = function () { try { return sessionStorage.getItem(칸); } catch (e) { console.log('[상황판] 기기 칸을 못 읽었다 — ' + e.message); return null; } };
+  var 칸쓰기 = function (v) { try { if (v) sessionStorage.setItem(칸, v); else sessionStorage.removeItem(칸); } catch (e) { console.log('[상황판] 기기 칸을 못 썼다 — ' + e.message); } };
+  var 새로받아띄우기 = function (주소들) {
+    칸쓰기('1');
+    console.log('[상황판] START 화면 코드를 캐시 없이 새로 받는다 — ' + 주소들.length + '개');
+    var 받기 = 주소들.concat([여기 || '', location.href.split('#')[0]]).filter(Boolean).map(function (u) {
+      return fetch(u, { cache: 'reload' }).catch(function (e) { console.log('[상황판] 새로 못 받았다: ' + u + ' — ' + e.message); });
+    });
+    return Promise.all(받기).then(function () { location.reload(); });
+  };
+  var 웹 = /^https?:/.test(location.protocol);
   import(첫주소).then(function () {
+    칸쓰기(null);
     console.log('[상황판] SUCCESS 화면 코드를 실었다');
   }, function (e) {
     var 까닭 = e && e.message ? e.message : String(e);
     console.log('[상황판] ERROR 화면 코드를 못 실었다 — ' + 까닭);
-    못읽은파일찾기().then(function (못읽음) {
-      알리기(못읽음.length ? '화면 코드 ' + 못읽음.join(' · ') + '을(를) 못 읽었다 — 상황판을 띄우지 못했다'
-        : '화면 코드가 돌다 실패했다 — ' + 까닭);
+    못읽은파일찾기().then(function (찾음) {
+      if (웹 && !찾음.못읽음.length && !칸읽기()) return 새로받아띄우기(찾음.주소들);
+      알리기(찾음.못읽음.length ? '화면 코드 ' + 찾음.못읽음.join(' · ') + '을(를) 못 읽었다 — 상황판을 띄우지 못했다'
+        : '화면 코드가 돌다 실패했다 — ' + 까닭 + (웹 ? ' · 「↻」를 누르면 화면 코드를 새로 받아 다시 띄운다' : ''));
+      var 단추 = document.getElementById('다시읽기');
+      if (웹 && 단추) 단추.onclick = function () { 새로받아띄우기(찾음.주소들); };
     });
   });
 })();
