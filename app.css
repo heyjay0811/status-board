@@ -147,10 +147,13 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .작업줄.열림 { background: var(--칸); }
 .작업줄.열림 > .줄 { background: none; }
 .표시줄 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 4px 8px; }
-.표시단추 { min-width: 36px; height: 30px; padding: 0 6px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); cursor: pointer; font-size: 15px; line-height: 1; filter: grayscale(.6); }
-.표시단추:hover { border-color: var(--강조); filter: none; }
-.표시단추.찍힘 { filter: none; border-color: var(--강조); outline: 2px solid var(--강조); background: color-mix(in srgb, var(--강조) 10%, var(--바탕)); }
-.표시단추.쓰는중 { filter: none; border-color: var(--강조); }
+/* 진행 · 질문 · 취소 — 평소에는 글 색 그대로, 그 표시의 색(진행 초록 · 질문 금색 · 취소 빨강)은 테두리와 찍힌 때의 바탕에만 쓴다 */
+.표시단추 { --표색: var(--흐린); height: 30px; padding: 0 10px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); color: var(--글); cursor: pointer; font: inherit; font-size: 13px; line-height: 1; }
+.표시단추.표시-체크 { --표색: var(--바꿈); }
+.표시단추.표시-물음 { --표색: var(--더함); }
+.표시단추.표시-엑스 { --표색: var(--지움); }
+.표시단추:hover, .표시단추.쓰는중 { border-color: var(--표색); }
+.표시단추.찍힘 { border-color: var(--표색); background: color-mix(in srgb, var(--표색) 22%, var(--바탕)); font-weight: 700; }
 .찍힌글 { font-size: 13px; color: var(--흐린); overflow-wrap: anywhere; }
 .작업쓰기 { padding: 0 4px 10px; }
 .작업쓰기 textarea, .턴코멘트, .옵션밖 { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--선); border-radius: 6px; background: var(--바탕); color: var(--글); }
