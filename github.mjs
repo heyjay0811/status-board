@@ -121,8 +121,8 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     const r = await 요청('GET', `/repos/${주인}/${저장소}/contents/${경로감싸기(경로)}`, null, 지문 ? { 'If-None-Match': 지문 } : null);
     if (r.상태 === 304) { 기록.log(`[GitHub 통로] SUCCESS 안 바뀜 — ${저장소}/${경로}`); return { 안바뀜: true, 지문 }; }
     if (r.상태 === 404) { 기록.log(`[GitHub 통로] SUCCESS 파일 없음 — ${저장소}/${경로}`); return null; }
-    // [관리부 작업 482] 1MB가 넘는 파일(현재 작업 현황 HTML 같은 것)은 GitHub이 JSON에 글을 담지 않는다 — 글 칸이 비고 encoding이 //
-    //   none이거나, 403 too_large가 온다. 그때는 원문(raw)으로 다시 받는다(bp-백엔드 제2조 ①의 현재 작업 현황 HTML 읽기). //
+    // [관리부 작업 482] 1MB가 넘는 파일(커진 작업 이력 같은 것)은 GitHub이 JSON에 글을 담지 않는다 — 글 칸이 비고 encoding이 //
+    //   none이거나, 403 too_large가 온다. 그때는 원문(raw)으로 다시 받는다. //
     const 큼 = (r.상태 === 200 && r.값 && r.값.type === 'file' && r.값.encoding === 'none')
       || (r.상태 === 403 && r.값 && Array.isArray(r.값.errors) && r.값.errors.some((x) => x && x.code === 'too_large'));
     if (큼) {
