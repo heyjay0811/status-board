@@ -19,7 +19,7 @@ import { 통로만들기, 전달넣기, 전달걷기, 전달가름, 옛전달풀
 import { 답자리, 이름꼴맞음, 이름짓기, 글짓기, 글읽기, 기기표지짓기, AI표지, 안이름, 최종답, 최종코멘트, 작업문서, 작업안, 최종정할것답 } from './answer-file.mjs';
 import { PC통로만들기, PC문서통로있음 } from './pc-docs.mjs';
 import { 법안읽기, 고를답, 곳이름, 설계안묶기, 표시있음, 줄마다칠함 } from './bill-parse.mjs';
-import { 항목분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 열린정할것읽기, 후속작업읽기, 요약읽기, 부서인가, 설계문서읽기 } from './doc-parse.mjs';
+import { 항목분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 열린정할것읽기, 후속작업읽기, 요약읽기, 부서인가, 설계문서읽기, 걸어둠인가 } from './doc-parse.mjs';
 import { 막기, 꾸미기, 달라진데, 지운데, 항밖글, 앞글나누기, 파일미리보기, 자리벗기기, 자리묶기, 묶은목록 } from './assembly-view.mjs';
 import { 빈줄기, 곳열기, 바깥열기, 안열기, 접기, 바깥누름, 안누름, 깊이까지접기, 기록차이 } from './stem.mjs';
 
@@ -1124,7 +1124,7 @@ function 작업글(곳) {
   if (!곳.작업) return `<p class="${곳.오류.length ? '오류' : '안내'}">${곳.오류.length ? '작업 목록을 못 읽었다 — ' + 막기(곳.오류.join(' / ')) : '이 곳에는 작업 목록이 없다'}</p>`;
   if (!곳.작업.length) return '<p class="안내">작업 목록이 비어 있다.</p>';
   const 앞 = 앞작업들(곳);
-  return 곳.작업.map((w, i) => {
+  const 줄글 = (w, i) => {
     const s = 상태줄읽기(w.본문);
     const 열쇠 = `작업:${곳.저장소}:${i}`;
     const 열린수 = 열린정할것읽기(작업파일글찾기(곳.저장소, w.번호)).length;
@@ -1135,8 +1135,22 @@ function 작업글(곳) {
       ${딱지}<b>[작업 ${w.번호}]</b> ${꾸미기(w.제목)}
       <span class="상태줄">${s ? 꾸미기(s.문장) : '상태 줄 없음'}</span>
       </span></button>${정할것들글(곳.저장소, w.번호, w.제목, '목록')}</div>`;
-  }).join('');
+  };
+  // [관리부 작업 493] bp-작업 제2조 ⑩ — 지속 · 보류 작업은 목록 맨 아래 「걸어 둔 작업 N」 묶음에 적힌 차례대로 모아 접어 둔다. //
+  //   묶음 펼침은 줄기에 들지 않고(bp-프론트엔드 제7조 ⑦), 다시 그려도 풀리지 않게 곳마다 기억한다. 그 안의 작업 박스가 열려 있으면 펼친다. //
+  const 줄들 = 곳.작업.map((w, i) => ({ w, i }));
+  const 앞줄 = 줄들.filter((x) => !걸어둠인가(x.w)), 걸린 = 줄들.filter((x) => 걸어둠인가(x.w));
+  if (!걸린.length) return 앞줄.map((x) => 줄글(x.w, x.i)).join('');
+  const 열림 = 걸어둔펼친.has(곳.저장소) || 걸린.some((x) => 상태.열린 && 상태.열린.열쇠 === `작업:${곳.저장소}:${x.i}`);
+  return 앞줄.map((x) => 줄글(x.w, x.i)).join('')
+    + `<details class="걸어둔묶음" data-걸어둔="${막기(곳.저장소)}"${열림 ? ' open' : ''}><summary>걸어 둔 작업 ${걸린.length}</summary>${걸린.map((x) => 줄글(x.w, x.i)).join('')}</details>`;
 }
+const 걸어둔펼친 = new Set();
+document.addEventListener('toggle', (e) => {
+  const d = e.target;
+  if (!d || !d.dataset || !d.dataset.걸어둔) return;
+  if (d.open) 걸어둔펼친.add(d.dataset.걸어둔); else 걸어둔펼친.delete(d.dataset.걸어둔);
+}, true);
 
 // [관리부 작업 487] 작업 목록의 결재 대상에 답 파일을 찍는다 — 의회 · 설계실의 찍기()와 같은 길(기기에 남기고 보내기 줄에 넘김, bp-결재 제3조 ⑥) //
 function 작업찍기(저장소, 값, 메시지, 제목) {

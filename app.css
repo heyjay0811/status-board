@@ -159,6 +159,7 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .줄 .제목 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 /* [관리부 작업 487] 작업 줄 — 작업 파일을 펼치는 제목(.줄)과 그 아래 단추 줄(표시 단추 ✅ · ❓ · ❌ · 💬, bp-결재 제2조 ③ ⑧) */
 .작업줄 { border-bottom: 1px solid var(--선); }
+.걸어둔묶음 > summary { cursor: pointer; padding: 8px 4px; font-size: 13px; color: var(--흐린); }
 .작업줄 > .줄 { border-bottom: 0; padding-bottom: 4px; }
 .작업줄.열림 { background: var(--칸); }
 .작업줄.열림 > .줄 { background: none; }
