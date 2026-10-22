@@ -888,6 +888,20 @@ function 설계펼침맞추기() {
   }
 }
 let 쌓은 = 0, 걷는중 = 0, 걷은때 = 0, 걷은뒤할일 = null;
+// [관리부 작업 487] 같은 조 ⑤ 처음누름 — 크롬은 사용자가 화면을 누르기 전에 쌓인 기록 자리를 이전 버튼에서 건너뛴다(2026-10-18 실기기 SM-S947N). //
+//   그래서 모바일 앱은 열 때 펼친 곳의 자리를 사용자가 처음 누른 순간에 쌓는다. 터치의 pointerdown은 사용자 누름으로 치지 않아 pointerup · keydown에서 쌓고, //
+//   붙잡기 단계에서 들어 누른 단추의 click보다 먼저 쌓는다. PC 앱은 처음부터 눌린 것으로 둔다. //
+let 처음눌림 = !폰;
+function 처음누름() {
+  if (처음눌림) return;
+  처음눌림 = true;
+  removeEventListener('pointerup', 처음누름, true);
+  removeEventListener('keydown', 처음누름, true);
+  기록('처음누름 — 열 때 펼친 곳의 기록 자리를 쌓는다');
+  기록맞추기();
+}
+addEventListener('pointerup', 처음누름, true);
+addEventListener('keydown', 처음누름, true);
 // 줄기를 새 줄기로 바꾸고 기록 수를 맞춘다. 그림이 참이면 바뀐 만큼 다시 그린다 — 박스가 바뀌면 화면 전체, //
 //   박스 안의 지시만 바뀌면 박스, 카드·조만 바뀌면 <details>의 open만 고친다. //
 function 줄기바꾸기(새, 까닭, 그림 = true) {
@@ -909,7 +923,7 @@ function 줄기바꾸기(새, 까닭, 그림 = true) {
 function 기록맞추기() {
   if (걷는중 && Date.now() - 걷은때 < 2000) return;
   if (걷는중) { 기록(`ERROR 기록을 걷었는데 2초 동안 popstate가 안 왔다 — 지금 기록 깊이로 다시 맞춘다`); 걷는중 = 0; 쌓은 = (history.state && history.state.깊이) || 0; }
-  const 차이 = 기록차이(쌓은, 상태.줄기);
+  const 차이 = 기록차이(쌓은, 상태.줄기, 처음눌림 ? 0 : 1);
   try {
     if (차이 > 0) {
       for (let i = 1; i <= 차이; i++) history.pushState({ 깊이: 쌓은 + i }, '');
