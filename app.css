@@ -53,6 +53,8 @@ a { color: var(--강조); }
 .전달목록 .못닿음 { display: block; margin-top: 2px; color: var(--지움); }
 .작은단추 { border: 1px solid var(--선); background: var(--칸); color: var(--글); border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
 .작은단추:hover { border-color: var(--강조); color: var(--강조); }
+.작은단추.눌림 { border-color: var(--강조); color: var(--강조); font-weight: 600; }
+.작업묶음머리 { font-size: 12px; color: var(--흐린); padding: 8px 4px 2px; }
 
 #본문 { flex: 1 1 auto; min-height: 0; width: 100%; max-width: 1400px; margin: 0 auto; overflow: auto; padding: 12px 16px; }
 /* 위 칸과 뷰어 칸이 서면 본문은 굴리지 않고 둘을 세로로 놓는다 — 뷰어 칸만 굴러간다(bp-프론트엔드) */
