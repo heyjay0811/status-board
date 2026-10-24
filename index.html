@@ -21,15 +21,15 @@
 <!-- 문서는 GitHub에서 열쇠로 읽고, 찍은 답은 그 안이 있는 저장소 docs/답/에 답 파일 하나로 새로 만든다. -->
 <header class="머리">
   <strong class="앱이름">상황판</strong>
-  <!-- [관리부 작업 473] bp-프론트엔드 「상황판은 PC 앱과 모바일 앱 둘이고, 두 앱은 GitHub에 올라간 최신 판의 코드 한 벌로 돈다」 조 ⑭ — 앱 이름 옆에 지금 실린 판의 커밋 시각 「판 MM-DD HH:mm」. 누르거나 마우스를 올리면 커밋 번호를 덧붙여 보인다(app.mjs 판시각그리기()) -->
+  <!-- [관리부 작업 473] bp-프론트엔드 — 앱 이름 옆에 지금 실린 판의 커밋 시각 「판 MM-DD HH:mm」. 누르거나 마우스를 올리면 커밋 번호를 덧붙여 보인다(app.mjs 판시각그리기()) -->
   <button type="button" class="판" id="판" hidden aria-expanded="false"><span id="판시각"></span><span class="판커밋" id="판커밋"></span></button>
   <span class="시각" id="시각"></span>
-  <!-- [관리부 작업 464] bp-결재 「찍은 답을 원본까지 전달하기와 「전달 안 됨」 딱지」 조 ⑦⑪ — 아직 원본에 닿지 않은 답이 있으면 「↻」 곁에 서고, 누르면 아래에 목록을 펼친다(app.mjs 딱지그리기()) -->
-  <!-- [관리부 작업 472] bp-프론트엔드 「상황판은 PC 앱과 모바일 앱 둘이고, 두 앱은 GitHub에 올라간 최신 판의 코드 한 벌로 돈다」 조 ⑪ — 최종 판을 못 받았으면 「전달 안 됨」 딱지보다 왼쪽에 서고, 누르면 아래에 까닭 한 줄을 펼친다(app.mjs 판딱지그리기()) -->
+  <!-- [관리부 작업 464] bp-결재 — 아직 원본에 닿지 않은 답이 있으면 「↻」 곁에 서고, 누르면 아래에 목록을 펼친다(app.mjs 딱지그리기()) -->
+  <!-- [관리부 작업 472] bp-프론트엔드 — 최종 판을 못 받았으면 「전달 안 됨」 딱지보다 왼쪽에 서고, 누르면 아래에 까닭 한 줄을 펼친다(app.mjs 판딱지그리기()) -->
   <button type="button" class="작은단추 전달딱지 새판딱지" id="새판딱지" hidden aria-expanded="false" aria-controls="새판까닭" title="누르면 새 판을 못 받은 까닭을 보인다 — 지금 판으로 돈다">새 판 못 받음</button>
   <button type="button" class="작은단추 전달딱지" id="전달딱지" hidden aria-expanded="false" aria-controls="전달목록" title="누르면 아직 원본에 닿지 않은 답을 보인다 — 상황판이 알아서 보낸다"></button>
   <button type="button" class="작은단추" id="다시읽기" title="GitHub에서 다시 읽는다">↻</button>
-  <!-- [관리부 작업 475] bp-부서프로젝트목록 제3조 ⑯ — 모바일 앱에서 곳 하나를 펼친 동안만 서는 줄: 「◀ 접기」와 그 곳 이름. 첫 줄 아래 한 줄을 통째로 쓴다(app.mjs 곳머리그리기()). PC 앱 머리 줄에는 이 칸이 없다 -->
+  <!-- [관리부 작업 475] bp-부서프로젝트목록 — 모바일 앱에서 곳 하나를 펼친 동안만 서는 줄: 「◀ 접기」와 그 곳 이름. 첫 줄 아래 한 줄을 통째로 쓴다(app.mjs 곳머리그리기()). PC 앱 머리 줄에는 이 칸이 없다 -->
   <div class="곳머리" id="곳머리" hidden><button type="button" class="작은단추" id="곳접기" title="이 곳을 접고 부서·프로젝트 단추 화면으로 돌아간다">◀ 접기</button><strong class="곳머리이름" id="곳머리이름"></strong></div>
   <ul class="전달목록" id="전달목록" hidden></ul>
   <ul class="전달목록" id="새판까닭" hidden></ul>

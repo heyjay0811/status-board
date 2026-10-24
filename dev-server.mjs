@@ -75,7 +75,7 @@ const 못읽을것 = String(process.env.SB_READ_FAIL || '').split(',').map((s) =
 const 숨길저장소 = String(process.env.SB_HIDE || '').split(',').map((s) => s.trim()).filter(Boolean);
 // [관리부 작업 457] 파일 목록을 못 읽게 할 저장소 — 이 이름(쉼표로 여럿)의 저장소는 저장소 목록에는 있고 커밋 묻기·파일 목록만 500이다 //
 const 목록못읽을곳 = String(process.env.SB_LIST_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
-// 못 읽게 할 화면 코드 파일 — 이 이름(쉼표로 여럿)의 화면 파일은 404다. 화면 모듈을 못 불러올 때 알리는지 잰다(제7조 ②). //
+// 못 읽게 할 화면 코드 파일 — 이 이름(쉼표로 여럿)의 화면 파일은 404다. 화면 모듈을 못 불러올 때 알리는지 잰다. //
 const 못줄화면 = String(process.env.SB_SCREEN_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
 const 서버 = createServer((요청, 응답) => {
   const u = new URL(요청.url, 'http://127.0.0.1');
@@ -103,14 +103,14 @@ const 서버 = createServer((요청, 응답) => {
     if (/^\/repos\/[^/]+\/status-board\/actions\/runs$/.test(api)) {
       if (갈래.판못받음) { console.log('[시험 서버] 시험 갈래 — 최종 판 묻기를 일부러 실패시킨다(500)'); return 답(500, { message: '시험 서버가 일부러 못 받게 한 최종 판' }); }
       console.log(`[시험 서버] 최종 판 묻기 — ${갈래.판}`);
-      // [관리부 작업 473] 같은 조 ⑭ — 판의 커밋 시각도 GitHub처럼 head_commit.timestamp(UTC)로 준다(머리 줄 「판 MM-DD HH:mm」) //
+      // [관리부 작업 473] — 판의 커밋 시각도 GitHub처럼 head_commit.timestamp(UTC)로 준다(머리 줄 「판 MM-DD HH:mm」) //
       return 답(200, { total_count: 1, workflow_runs: [{ name: 'pages build and deployment', status: 'completed', conclusion: 'success', head_sha: 갈래.판, head_commit: { id: 갈래.판, timestamp: 갈래.판시각 } }] });
     }
     if (api === '/user/repos') return 답(200, Object.keys(저장소들).filter((name) => !숨길저장소.includes(name)).map((name) => ({ name })));
     const 숨김 = 숨길저장소.find((name) => api.startsWith(`/repos/heyjay0811/${name}/`));
     if (숨김) { console.log(`[시험 서버] 열쇠가 못 보는 저장소 흉내(404) — ${숨김}`); return 답(404, { message: 'Not Found' }); }
     let m;
-    // [관리부 작업 457] 파일 목록을 일부러 못 읽게 할 저장소 — 저장소 커밋 묻기와 파일 목록이 500이다(bp-백엔드 「…원본에서 그때그때 읽은 문서로…」 조 ⑧ 시험) //
+    // [관리부 작업 457] 파일 목록을 일부러 못 읽게 할 저장소 — 저장소 커밋 묻기와 파일 목록이 500이다(bp-백엔드 시험) //
     if ((m = api.match(/^\/repos\/[^/]+\/([^/]+)\/(git\/trees\/|commits$)/)) && 목록못읽을곳.includes(m[1]) && (m[2] !== 'commits' || !u.searchParams.get('path'))) {
       console.log(`[시험 서버] 일부러 파일 목록을 못 읽게 했다(500) — ${m[1]}`);
       return 답(500, { message: '시험 서버가 일부러 못 읽게 한 파일 목록' });
