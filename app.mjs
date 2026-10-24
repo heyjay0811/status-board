@@ -700,7 +700,7 @@ function 현황글() {
   const 행 = 줄.filter((x) => !상태.현황끔.has(x.곳.저장소)).map((x) => {
     const 키 = `${x.곳.저장소}#${x.w.번호}`, 펼침 = 상태.현황펼침 === 키;
     const 딱지 = x.기다림 ? `<span class="딱지 판단">결정할 사항 ${x.수}</span>` : '<span class="딱지">보냄</span>';
-    const 제목 = String(x.w.제목 || '').replace(/^[▶▷]\s*/, '');
+    const 제목 = String(x.w.제목 || '');
     return `<div class="현황줄${펼침 ? ' 펼침' : ''}"><button type="button" class="현황머리" data-현황줄="${막기(키)}" aria-expanded="${펼침}">${선로(x.곳.저장소)}`
       + `<span class="현황글"><span class="현황시각">${짧은때(x.시각)}</span> <span class="현황제목" style="color:${곳색(x.곳.저장소)}">[작업 ${x.w.번호}] ${꾸미기(제목)}</span> ${딱지}</span></button>`
       + (펼침 ? `<div class="현황상세">${선로(null)}<div class="현황상세몸">${요약글(x.곳.저장소, x.w.번호)}${정할것들글(x.곳.저장소, x.w.번호, x.w.제목, '현황')}</div></div>` : '') + '</div>';
