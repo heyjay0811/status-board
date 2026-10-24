@@ -188,6 +188,8 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .턴사용자 { margin: 4px 0 8px; color: var(--흐린); overflow-wrap: anywhere; }
 .정할것 { margin: 10px 0; padding-top: 8px; border-top: 1px solid var(--선); }
 .정할것머리 { margin-bottom: 6px; overflow-wrap: anywhere; }
+.열린정할것 { margin: 10px 0; padding-left: 10px; border-left: 3px solid var(--강조); }
+.정할것묶음머리 { font-size: 13px; color: var(--강조); overflow-wrap: anywhere; }
 .옵션들 { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
 .옵션단추 { text-align: left; padding: 8px 10px; border: 1px solid var(--선); border-radius: 8px; background: var(--바탕); color: var(--글); font: inherit; font-size: 14px; cursor: pointer; overflow-wrap: anywhere; }
 .옵션단추:hover { border-color: var(--강조); }
