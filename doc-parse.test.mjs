@@ -348,7 +348,7 @@ console.log('\n[실물 작업 파일로 대조]');
 
 console.log('\n[실물 문서로 대조]');
 if (!existsSync(관리부문서)) console.log(`  (건너뜀: 관리부 문서 자리가 없다 — ${관리부문서})`);
-else for (const [파일, 종류] of [['work.md', '작업'], ['brainstorm.md', '구상'], ['verify.md', '검증'], ['errors.md', '오류']]) {
+else for (const [파일, 종류] of [['work.md', '작업'], ['verify.md', '검증'], ['errors.md', '오류']]) {
   const 원문 = readFileSync(join(관리부문서, 파일), 'utf8');
   const 목록 = 항목들(원문, { 종류 });
   const 번호들 = 목록.map((i) => i.번호);
