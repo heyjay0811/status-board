@@ -274,12 +274,12 @@ export function 열린정할것읽기(작업파일글) {
   }
   return 목록.filter((p) => p.판단줄 || p.옵션.length);
 }
-// 후속 작업 — 작업 파일 어디든 「후속 작업: [작업 N]」(여럿이면 「[작업 N] · [작업 M]」)에 적힌 작업 번호들(`rule-문서`) //
-export function 후속작업읽기(작업파일글) {
-  const 번호 = new Set();
-  for (const m of String(작업파일글 ?? '').matchAll(/후속 작업:\s*((?:\[작업 \d+\][\s·,]*)+)/g))
-    for (const n of m[1].matchAll(/\[작업 (\d+)\]/g)) 번호.add(Number(n[1]));
-  return [...번호];
+// 먼저 할 작업 — 「무엇을 하나」 절의 「- 선순위:」 바로 뒤 낱말이 「먼저」이고, 「구현 계획」 절에 마지막 칸이 「남음」으로 시작하는 할 일 줄이 있다(bp-작업). 지속 작업은 부르는 쪽이 뺀다 //
+export function 선순위먼저읽기(작업파일글) {
+  const { 절 } = 작업파일나누기(작업파일글);
+  const 글 = (제목) => 절.find((x) => x.제목 === 제목)?.글 ?? '';
+  if (!/^-\s+선순위:\s*먼저/m.test(글('무엇을 하나'))) return false;
+  return 글('구현 계획').split('\n').some((줄) => /^-\s/.test(줄) && CR떼기(줄).split(' | ').at(-1).startsWith('남음'));
 }
 // 요약 — 「무엇을 하나」 절의 첫 문단(`rule-문서`). 첫 문단 머리의 「**요약.**」은 뗀다. 없으면 빈 글 //
 export function 요약읽기(작업파일글) {
