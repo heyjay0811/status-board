@@ -173,6 +173,7 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
   .지도칸머리 { display: grid; color: var(--흐린); font-size: 12px; border-top: 0; }
 }
 .딱지.지도옮김 { border-color: var(--바꿈); color: var(--바꿈); }
+.딱지.지도버림 { border-color: var(--지움); color: var(--지움); }
 .딱지.지도확인 { border-color: var(--더함); color: var(--더함); }
 .줄 { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--선); padding: 10px 4px; cursor: pointer; }
 .줄.열림 { background: var(--칸); }
