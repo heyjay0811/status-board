@@ -245,7 +245,7 @@ export function 규칙지도읽기(글) {
 export function 규칙지도셈(묶음들) {
   const 줄 = 묶음들.flatMap((x) => x.규칙들);
   return { 모두: 줄.length, 옮김: 줄.filter((x) => x.옮김 === '옮김').length, 제자리: 줄.filter((x) => x.옮김 === '제자리').length,
-    남음: 줄.filter((x) => !x.옮김).length, 버림: 줄.filter((x) => x.옮김 === '버림').length, 확인: 줄.filter((x) => x.확인).length, 확인할것: 줄.filter((x) => x.옮김 && !x.확인).length };
+    남음: 줄.filter((x) => !x.옮김).length, 버림: 줄.filter((x) => x.옮김 === '버림').length, 확인: 줄.filter((x) => x.확인 === '확인').length, 변경: 줄.filter((x) => x.확인 === '변경').length, 제거: 줄.filter((x) => x.확인 === '제거').length, 확인할것: 줄.filter((x) => x.옮김 && !x.확인).length };
 }
 // 글자리 = 지금 자리 칸의 첫 조각이 가리키는 규칙 글의 { 저장소, 경로 }, 없으면 null(bp-규칙지도) //
 export function 규칙글자리(자리) {
@@ -261,7 +261,7 @@ export function 규칙글자리(자리) {
 // 분량 = 규칙 글의 글자 수를 괄호로 묶은 글, 글이 없으면 빈 글(bp-규칙지도) //
 export const 규칙분량 = (글) => (typeof 글 === 'string' ? `(${[...글].length.toLocaleString('ko-KR')}자)` : '');
 // 갈래로 거른 규칙 지도 — 갈래가 없으면 모든 줄, 보이는 줄이 없는 목적은 뺀다(bp-규칙지도) //
-const 지도갈래 = { 옮김: (x) => x.옮김 === '옮김', 제자리: (x) => x.옮김 === '제자리', 남음: (x) => !x.옮김, 버림: (x) => x.옮김 === '버림', 확인: (x) => !!x.확인 };
+const 지도갈래 = { 옮김: (x) => x.옮김 === '옮김', 제자리: (x) => x.옮김 === '제자리', 남음: (x) => !x.옮김, 버림: (x) => x.옮김 === '버림', 확인: (x) => x.확인 === '확인', 변경: (x) => x.확인 === '변경', 제거: (x) => x.확인 === '제거' };
 export const 규칙지도거르기 = (묶음들, 갈래) => (지도갈래[갈래]
   ? 묶음들.map((x) => ({ ...x, 규칙들: x.규칙들.filter(지도갈래[갈래]) })).filter((x) => x.규칙들.length)
   : 묶음들);
