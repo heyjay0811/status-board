@@ -17,7 +17,7 @@
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync, mkdtempSync, copyFileSync } from 'node:fs';
 import { join, dirname, extname, relative, sep } from 'node:path';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
@@ -66,6 +66,15 @@ for (const [이름, 폴더] of Object.entries(저장소들)) {
   }
   if (existsSync(join(폴더, '.claude'))) { mkdirSync(join(사본, '.claude'), { recursive: true }); writeFileSync(join(사본, '.claude', 'settings.json'), '{}'); }
 }
+// 규칙 지도가 읽는 글(bp-규칙지도) — 전역 설정과 회장실 저장소는 곳이 아니라 규칙 파일만 옮긴다 //
+const 사본두기 = (저장소, 경로, 원본) => { if (!existsSync(원본)) return; const 곳 = join(뿌리, 저장소, 경로); mkdirSync(dirname(곳), { recursive: true }); copyFileSync(원본, 곳); };
+const 전역 = join(homedir(), '.claude');
+사본두기('management', 'CLAUDE.md', join(관리부, 'CLAUDE.md'));
+사본두기('yessoftbook', 'CLAUDE.md', join(dirname(관리부), 'CLAUDE.md'));
+사본두기('claude-config', 'CLAUDE.md', join(전역, 'CLAUDE.md'));
+for (const f of readdirSync(join(전역, 'rules'))) 사본두기('claude-config', `rules/${f}`, join(전역, 'rules', f));
+for (const d of readdirSync(join(전역, 'skills'))) 사본두기('claude-config', `skills/${d}/SKILL.md`, join(전역, 'skills', d, 'SKILL.md'));
+for (const f of readdirSync(join(전역, 'agents'), { recursive: true })) if (String(f).endsWith('.md')) 사본두기('claude-config', `agents/${String(f).replaceAll('\\', '/')}`, join(전역, 'agents', String(f)));
 console.log(`[시험 서버] 사본을 만들었다 — ${Object.keys(저장소들).length}곳 → ${뿌리}`);
 
 const 지문 = (글) => createHash('sha1').update(글).digest('hex');

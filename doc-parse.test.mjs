@@ -9,7 +9,7 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { 규칙지도읽기, 규칙지도셈, 규칙지도거르기, 규칙글경로, 항목들, 항목머리, 항목분해,필드분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 열린정할것읽기, 선순위먼저읽기, 요약읽기, 부서인가, 설계문서읽기, 걸어둠인가, 올린안읽기, 지속인가, 도는조건읽기 } from './doc-parse.mjs';
+import { 규칙지도읽기, 규칙지도셈, 규칙지도거르기, 규칙글자리, 항목들, 항목머리, 항목분해,필드분해, 상태줄읽기, 작업파일나누기, 진행현황읽기, 열린정할것읽기, 선순위먼저읽기, 요약읽기, 부서인가, 설계문서읽기, 걸어둠인가, 올린안읽기, 지속인가, 도는조건읽기 } from './doc-parse.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -387,8 +387,11 @@ console.log('\n[규칙 지도]');
   const 버린묶음 = 규칙지도읽기('## 버릴\n\n| 규칙 | 옮김 |\n|---|---|\n| 가 | 버림 |\n| 나 | |\n');
   확인('규칙 지도 — 버림은 남음에 들지 않는다', 규칙지도셈(버린묶음).버림 === 1 && 규칙지도셈(버린묶음).남음 === 1, JSON.stringify(규칙지도셈(버린묶음)));
   확인('규칙 지도 — 버림만 거른다', 규칙지도거르기(버린묶음, '버림')[0].규칙들.map((x) => x.규칙).join() === '가');
-  확인('규칙 지도 — 규칙 글 자리', 규칙글경로('rulebook/응답규칙') === 'rulebook/응답규칙.md' && 규칙글경로('rulebook/규칙기준 · 공통 제1 ~ 5 · 8조') === 'rulebook/규칙기준.md');
-  확인('규칙 지도 — rulebook이 아니면 글 자리 없음', 규칙글경로('rules/rule-훅') === '' && 규칙글경로('매 턴 제1조') === '' && 규칙글경로(undefined) === '');
+  const 자리글 = (x) => { const r = 규칙글자리(x); return r ? `${r.저장소}:${r.경로}` : ''; };
+  확인('규칙 지도 — rulebook 글 자리', 자리글('rulebook/응답규칙') === 'management:rulebook/응답규칙.md' && 자리글('rulebook/규칙기준 · 공통 제1 ~ 5 · 8조') === 'management:rulebook/규칙기준.md');
+  확인('규칙 지도 — 제자리 글 자리', 자리글('~/.claude/CLAUDE.md') === 'claude-config:CLAUDE.md' && 자리글('D:/1code/CLAUDE.md') === 'yessoftbook:CLAUDE.md' && 자리글('관리부 제3 · 4조') === 'management:CLAUDE.md');
+  확인('규칙 지도 — 스킬 · 경로 규칙 · 담당 글 자리', 자리글('skills/law-citation') === 'claude-config:skills/law-citation/SKILL.md' && 자리글('rules/rule-훅') === 'claude-config:rules/rule-훅.md' && 자리글('agents/의회/dam-assembly') === 'claude-config:agents/의회/dam-assembly.md');
+  확인('규칙 지도 — 옛 조 번호는 글 자리 없음', 자리글('매 턴 제1조') === '' && 자리글(undefined) === '');
   확인('규칙 지도 — 갈래 없으면 모든 줄', 규칙지도거르기(묶음, '') === 묶음);
   확인('규칙 지도 — 남음만 거른다', 규칙지도거르기(묶음, '남음').map((x) => x.규칙들.map((y) => y.규칙).join()).join() === '작업 시작');
   확인('규칙 지도 — 제자리만 거르면 다른 목적은 빠진다', 규칙지도거르기(묶음, '제자리').map((x) => x.목적).join() === '앱');
