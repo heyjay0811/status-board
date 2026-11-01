@@ -164,9 +164,9 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .지도부르기::before { content: ' · '; }
 .지도자리 { color: var(--흐린); font-size: 12px; overflow-wrap: anywhere; }
 .지도칸머리 { display: none; }
-/* 넓은 화면은 한 규칙이 칸으로 나뉜 한 줄이다 — 칸 폭을 고정해 목적이 달라도 칸이 맞는다(bp-규칙지도) */
+/* 넓은 화면은 한 규칙이 칸으로 나뉜 한 줄이다 — 칸 폭을 글자에 맞춰 고정해 화면이 넓어도 벌어지지 않고 목적이 달라도 칸이 맞는다(bp-규칙지도) */
 @media (min-width: 900px) {
-  .지도줄 { grid-template-columns: minmax(0, 1.3fr) 6rem minmax(0, 1.6fr) 6rem minmax(0, 2fr); padding: 3px 0; }
+  .지도줄 { grid-template-columns: 9rem 5rem 16rem 5rem minmax(0, 1fr); max-width: 56rem; padding: 3px 0; }
   .지도때 { display: contents; }
   .지도자리 { grid-column: auto; }
   .지도부르기::before { content: none; }
