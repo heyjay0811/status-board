@@ -163,6 +163,7 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .지도글 { color: var(--흐린); font-size: 13px; overflow-wrap: anywhere; }
 .지도부르기::before { content: ' · '; }
 .지도자리 { color: var(--흐린); font-size: 12px; overflow-wrap: anywhere; }
+.규칙단추줄 { padding: 8px 0 0; }
 .지도분량 { color: var(--흐린); font-size: 12px; font-weight: 400; white-space: nowrap; }
 .지도칸머리 { display: none; }
 .지도누름 { padding: 0; border: 0; background: none; color: var(--강조); font-family: inherit; font-size: inherit; text-align: left; cursor: pointer; }
