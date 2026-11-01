@@ -156,12 +156,22 @@ details.자리큰 > summary { font-weight: 700; padding: 8px 0; cursor: pointer;
 details.자리작은 { margin-left: 10px; }
 details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: pointer; }
 .자리수 { font-size: 12px; color: var(--흐린); font-weight: 400; }
-.지도줄 { padding: 7px 0; border-top: 1px solid var(--선); font-size: 14px; }
-.지도머리 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.지도줄 { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--선); font-size: 14px; }
 .지도이름 { font-weight: 600; overflow-wrap: anywhere; }
-.지도표시 { flex: none; display: flex; gap: 4px; }
+.지도표시 { display: flex; gap: 4px; }
+.지도때, .지도자리 { grid-column: 1 / -1; }
 .지도글 { color: var(--흐린); font-size: 13px; overflow-wrap: anywhere; }
+.지도부르기::before { content: ' · '; }
 .지도자리 { color: var(--흐린); font-size: 12px; overflow-wrap: anywhere; }
+.지도칸머리 { display: none; }
+/* 넓은 화면은 한 규칙이 칸으로 나뉜 한 줄이다 — 칸 폭을 고정해 목적이 달라도 칸이 맞는다(bp-규칙지도) */
+@media (min-width: 900px) {
+  .지도줄 { grid-template-columns: minmax(0, 1.3fr) 6rem minmax(0, 1.6fr) 6rem minmax(0, 2fr); padding: 3px 0; }
+  .지도때 { display: contents; }
+  .지도자리 { grid-column: auto; }
+  .지도부르기::before { content: none; }
+  .지도칸머리 { display: grid; color: var(--흐린); font-size: 12px; border-top: 0; }
+}
 .딱지.지도옮김 { border-color: var(--바꿈); color: var(--바꿈); }
 .딱지.지도확인 { border-color: var(--더함); color: var(--더함); }
 .줄 { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--선); padding: 10px 4px; cursor: pointer; }
