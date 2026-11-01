@@ -165,9 +165,10 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .지도자리 { color: var(--흐린); font-size: 12px; overflow-wrap: anywhere; }
 .지도칸머리 { display: none; }
 .지도누름 { padding: 0; border: 0; background: none; color: var(--강조); font-family: inherit; font-size: inherit; text-align: left; cursor: pointer; }
-.지도본문 { max-width: 56rem; padding: 8px 0 16px; border-top: 1px solid var(--선); }
-/* 넓은 화면은 한 규칙이 칸으로 나뉜 한 줄이다 — 칸 폭을 글자에 맞춰 고정해 화면이 넓어도 벌어지지 않고 목적이 달라도 칸이 맞는다(bp-규칙지도) */
-@media (min-width: 900px) {
+.지도줄.열림 .지도누름 { text-decoration: underline; }
+.지도두칸 .목록칸 { container: 지도목록 / inline-size; }
+/* 목록 칸이 넉넉하면 한 규칙이 칸으로 나뉜 한 줄이다 — 칸 폭을 글자에 맞춰 고정해 화면이 넓어도 벌어지지 않고 목적이 달라도 칸이 맞는다(bp-규칙지도) */
+@container 지도목록 (min-width: 44rem) {
   .지도줄 { grid-template-columns: 9rem 5rem 16rem 5rem minmax(0, 1fr); max-width: 56rem; padding: 3px 0; }
   .지도때 { display: contents; }
   .지도자리 { grid-column: auto; }
@@ -321,6 +322,7 @@ mark { background: var(--노랑); color: inherit; }
   .뷰어칸 > .곳펼침:last-child { margin-bottom: 0; border-bottom: 0; }
   .뷰어칸 > .곳펼침:last-child > .줄몸 { padding-bottom: 0; }
   .두칸 { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; }
+  .두칸.지도두칸 { grid-template-columns: minmax(0, 56rem) minmax(20rem, 1fr); }
   .박스칸 { display: block; min-width: 0; }
   .빈칸 { display: flex; align-items: center; justify-content: center; position: sticky; top: 0; min-height: 240px; border: 1px dashed var(--선); border-radius: 8px; color: var(--흐린); font-size: 14px; }
   /* ★inset(top·right·bottom·left를 한꺼번에 정하는 줄임 이름)을 top보다 먼저 적는다 — 전에는 top 뒤에 inset: auto를 적어 top이
