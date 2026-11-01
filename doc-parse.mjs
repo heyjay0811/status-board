@@ -225,6 +225,29 @@ export function 설계문서읽기(원문) {
 // [관리부 작업 459] rule-문서 — 작업 파일 「올린 안」 절의 줄 `- 의회 | 안 제목 | 갈 자리 | 끝 칸`(설계안은 `- 설계실 | …`). //
 // 돌려주는 것: [{ 종류: '의회'|'설계실', 제목, 갈곳, 끝 }] — 절이 없으면 빈 목록 //
 const 올린안줄꼴 = /^-\s+(의회|설계실)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+)$/;
+// 규칙 지도(관리부 docs/규칙지도.md) — 「## 목적」마다 표가 하나다. 표 머리의 칸 이름으로 칸을 찾아, 칸 차례가 바뀌어도 읽는다(bp-규칙지도) //
+const 지도칸 = (줄) => 줄.trim().replace(/^\||\|$/g, '').split('|').map((s) => s.trim());
+export function 규칙지도읽기(글) {
+  const 묶음들 = [];
+  let 묶음 = null, 머리 = null;
+  for (const 줄 of String(글 ?? '').split(/\r?\n/)) {
+    if (줄.startsWith('## ')) { 묶음 = { 목적: 줄.slice(3).trim(), 규칙들: [] }; 묶음들.push(묶음); 머리 = null; continue; }
+    if (!묶음 || !줄.startsWith('|')) continue;
+    const 칸 = 지도칸(줄);
+    if (!머리) { 머리 = 칸; continue; }
+    if (칸.every((x) => /^:?-+:?$/.test(x))) continue;
+    const 값 = (이름) => 칸[머리.indexOf(이름)] ?? '';
+    묶음.규칙들.push({ 규칙: 값('규칙'), 언제: 값('언제 쓰나'), 부르기: 값('어떻게 부르나'), 자리: 값('지금 자리'), 옮김: 값('옮김'), 확인: 값('확인') });
+  }
+  return 묶음들.filter((x) => x.규칙들.length);
+}
+// 남은 규칙 = 옮김 칸이 빈 줄 · 확인할 규칙 = 옮김 칸이 찼고 확인 칸이 빈 줄(bp-규칙지도) //
+export function 규칙지도셈(묶음들) {
+  const 줄 = 묶음들.flatMap((x) => x.규칙들);
+  return { 모두: 줄.length, 옮김: 줄.filter((x) => x.옮김 === '옮김').length, 제자리: 줄.filter((x) => x.옮김 === '제자리').length,
+    남음: 줄.filter((x) => !x.옮김).length, 확인: 줄.filter((x) => x.확인).length, 확인할것: 줄.filter((x) => x.옮김 && !x.확인).length };
+}
+
 export function 올린안읽기(작업파일글) {
   const 절 = 작업파일나누기(작업파일글).절.find((x) => x.제목 === '올린 안');
   if (!절) return [];
