@@ -247,6 +247,11 @@ export function 규칙지도셈(묶음들) {
   return { 모두: 줄.length, 옮김: 줄.filter((x) => x.옮김 === '옮김').length, 제자리: 줄.filter((x) => x.옮김 === '제자리').length,
     남음: 줄.filter((x) => !x.옮김).length, 버림: 줄.filter((x) => x.옮김 === '버림').length, 확인: 줄.filter((x) => x.확인).length, 확인할것: 줄.filter((x) => x.옮김 && !x.확인).length };
 }
+// 글자리 = 지금 자리 칸이 rulebook/이름으로 시작하면 rulebook/이름.md, 아니면 빈 글(bp-규칙지도) //
+export function 규칙글경로(자리) {
+  const 맞음 = /^rulebook\/[^\s·]+/.exec(String(자리 ?? ''));
+  return 맞음 ? `${맞음[0]}.md` : '';
+}
 // 갈래로 거른 규칙 지도 — 갈래가 없으면 모든 줄, 보이는 줄이 없는 목적은 뺀다(bp-규칙지도) //
 const 지도갈래 = { 옮김: (x) => x.옮김 === '옮김', 제자리: (x) => x.옮김 === '제자리', 남음: (x) => !x.옮김, 버림: (x) => x.옮김 === '버림', 확인: (x) => !!x.확인 };
 export const 규칙지도거르기 = (묶음들, 갈래) => (지도갈래[갈래]

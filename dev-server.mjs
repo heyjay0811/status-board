@@ -58,6 +58,12 @@ for (const [이름, 폴더] of Object.entries(저장소들)) {
     mkdirSync(join(사본, 'docs', '답'), { recursive: true });
     for (const f of readdirSync(답)) if (f.endsWith('.json')) copyFileSync(join(답, f), join(사본, 'docs', '답', f));
   }
+  // 규칙 파일(rulebook/*.md — bp-규칙지도) — 진짜 저장소에 있으면 함께 옮긴다 //
+  const 규칙 = join(폴더, 'rulebook');
+  if (existsSync(규칙)) {
+    mkdirSync(join(사본, 'rulebook'), { recursive: true });
+    for (const f of readdirSync(규칙)) if (f.endsWith('.md')) copyFileSync(join(규칙, f), join(사본, 'rulebook', f));
+  }
   if (existsSync(join(폴더, '.claude'))) { mkdirSync(join(사본, '.claude'), { recursive: true }); writeFileSync(join(사본, '.claude', 'settings.json'), '{}'); }
 }
 console.log(`[시험 서버] 사본을 만들었다 — ${Object.keys(저장소들).length}곳 → ${뿌리}`);
