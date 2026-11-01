@@ -40,6 +40,10 @@ const 보일이름 = (저장소) => (!곳이름[저장소] ? 저장소 : 폴더�
 // 브라우저 저장소는 막혀 있을 수 있다(사생활 창 같은 곳) — 막혀도 화면은 열쇠 칸을 다시 보인다 //
 const 브라우저열쇠읽기 = () => { try { return localStorage.getItem(열쇠자리) || ''; } catch (e) { 기록('열쇠를 못 읽었다: ' + e.message); return ''; } };
 const 브라우저열쇠쓰기 = (v) => { try { v ? localStorage.setItem(열쇠자리, v) : localStorage.removeItem(열쇠자리); return true; } catch (e) { 기록('ERROR 열쇠를 브라우저 저장에 못 적었다: ' + e.message); return false; } };
+// 브라우저가 저장 공간을 비울 때 열쇠가 지워지지 않게 남겨 달라고 요청한다 — 거절해도 화면은 그대로 돈다(bp-백엔드) //
+const 기기저장남기기 = () => navigator.storage?.persist?.()
+  .then((됨) => 기록(`기기 저장 남기기 — ${됨 ? '허락' : '거절'}`))
+  .catch((e) => 기록('ERROR 기기 저장 남기기를 요청하지 못했다: ' + e.message));
 
 // 고른줄·고정 — 펼침(곳) = (곳 = 고른 곳) OR 고정(곳). 고정은 기기에 저장하지 않는다. //
 //   고정은 고정한 차례가 남는 목록이다(Set은 넣은 차례를 지킨다) — 차트와 뷰어가 이 차례로 선다(bp-프론트엔드). //
@@ -482,6 +486,7 @@ function 열쇠그리기() {
   본문.innerHTML = `<div class="열쇠칸"><h2>GitHub 열쇠 넣기</h2>
     <p class="안내">문서가 든 저장소는 비공개라, 사용자의 GitHub 열쇠(토큰)로 읽고 씁니다. 열쇠는 이 기기 브라우저 안에만 둡니다(모바일 앱만 열쇠를 씁니다 — PC 앱은 PC의 <code>git</code> 로그인을 씁니다).</p>
     <p class="안내">GitHub → Settings → Developer settings → Fine-grained tokens에서 만들고, 부서·프로젝트 저장소를 고른 뒤 권한은 <b>Contents: Read and write</b> 하나만 줍니다. 상황판은 답을 누를 때마다 그 안이 있는 저장소의 답 파일 자리(<code>docs/답/</code>)에 작은 답 파일 하나만 새로 만들어, 부서·프로젝트 저장소에 쓰기 권한이 있어야 설계안에 찍은 답이 닿습니다.</p>
+    <p class="안내">규칙 지도에서 전역 규칙·스킬·담당과 회장실 글까지 읽으려면 <code>claude-config</code>·<code>yessoftbook</code>도 고릅니다. 권한은 고른 저장소 모두에 같게 붙어, 이 두 저장소에도 쓰기 권한이 붙습니다.</p>
     <input id="열쇠" type="password" autocomplete="off" placeholder="github_pat_…">
     <p><button type="button" class="답단추" data-일="열쇠저장">넣고 읽기</button></p></div>`;
 }
@@ -1375,7 +1380,7 @@ function 규칙글박스그리기(열린) {
   const 제목 = /^# (.*)$/m.exec(글)?.[1]?.trim() || 열린.경로;
   const 머리 = `<div class="박스머리"><h2>${꾸미기(제목)}</h2><button type="button" class="작은단추 닫기" data-일="닫기">✕</button></div><div class="자리딱지">규칙 파일: ${막기(k)}</div>`;
   if (읽기.읽는중) { 박스.innerHTML = `${머리}<p class="안내">읽는 중…</p>`; return; }
-  if (읽기.오류) { 박스.innerHTML = `${머리}<p class="오류">규칙 글을 읽지 못했다${PC ? '' : ' — PC 앱에서 읽는다'}: ${막기(읽기.오류)}</p>`; return; }
+  if (읽기.오류) { 박스.innerHTML = `${머리}<p class="오류">규칙 글을 읽지 못했다${PC ? '' : ` — 폰 열쇠에 ${막기(열린.저장소)} 저장소 권한이 있는지 본다`}: ${막기(읽기.오류)}</p>`; return; }
   // 첫 조 앞의 머리글은 인용 표시와 가름줄을 걷는다 — 샘플 안의 `> `는 글 그대로 둔다 //
   const 조각들 = 글.replace(/^# .*\r?\n/, '').split(/^(## .*)$/m).map((x, i) => (x.startsWith('## ') ? `<h3 class="작업절">${꾸미기(x.slice(3))}</h3>` : 꾸미기((i ? x : x.replace(/^(?:> |---\s*$)/gm, '')).trim())));
   박스.innerHTML = `${머리}<div class="박스몸 본문글">${조각들.join('')}</div>`;
@@ -1824,6 +1829,7 @@ function 시작() {
   } else {
     const 열쇠 = 브라우저열쇠읽기();
     if (!열쇠) { 상태.통로 = null; 그리기(); return; }
+    기기저장남기기();
     상태.통로 = 통로만들기({ 열쇠, API, 기록: { log: 기록 } });
   }
   let 훑기 = false;
