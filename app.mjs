@@ -649,18 +649,18 @@ function 규칙지도글() {
   const 셈 = 규칙지도셈(묶음들);
   const 표시 = (r) => (r.옮김 ? `<span class="딱지${r.옮김 === '옮김' ? ' 지도옮김' : r.옮김 === '버림' ? ' 지도버림' : ''}">${막기(r.옮김)}</span>` : '<span class="딱지 판단">남음</span>')
     + (r.확인 ? '<span class="딱지 지도확인">확인</span>' : '');
-  const 이름글 = (r, 열쇠) => (열쇠
-    ? `<button type="button" class="지도이름 지도누름" data-열기="${막기(열쇠)}">${꾸미기(r.규칙)}</button>`
+  const 분량글 = (자리) => { const 글 = PC && 자리 ? 규칙분량(상태.규칙글[`${자리.저장소}/${자리.경로}`]?.글) : ''; return 글 ? ` <span class="지도분량">${글}</span>` : ''; };
+  const 이름글 = (r, 열쇠, 자리) => (열쇠
+    ? `<button type="button" class="지도이름 지도누름" data-열기="${막기(열쇠)}">${꾸미기(r.규칙)}${분량글(자리)}</button>`
     : `<span class="지도이름">${꾸미기(r.규칙)}</span>`);
   const 줄글 = (r) => { const 글자리 = 규칙글자리(r.자리), 열쇠 = 글자리 && `규칙글:${글자리.저장소}:${글자리.경로}`, 열림 = 열쇠 && 상태.열린 && 상태.열린.열쇠 === 열쇠 ? ' 열림' : '';
-    return `<div class="지도줄${열림}">${이름글(r, 열쇠)}<span class="지도표시">${표시(r)}</span>`
+    return `<div class="지도줄${열림}">${이름글(r, 열쇠, 글자리)}<span class="지도표시">${표시(r)}</span>`
     + `<span class="지도때"><span class="지도글">${꾸미기(r.언제)}</span><span class="지도글 지도부르기">${꾸미기(r.부르기)}</span></span>`
-    + `<span class="지도자리">${꾸미기(r.자리)}</span>`
-    + (PC ? `<span class="지도분량">${규칙분량(글자리 ? 상태.규칙글[`${글자리.저장소}/${글자리.경로}`]?.글 : null)}</span>` : '') + '</div>'; };
+    + `<span class="지도자리">${꾸미기(r.자리)}</span></div>`; };
   const 갈래단추 = (갈래) => `<button type="button" class="설계칩${상태.지도갈래 === 갈래 ? ' 켜짐' : ''}" data-지도갈래="${갈래}" aria-pressed="${상태.지도갈래 === 갈래}">${갈래} ${셈[갈래]}</button>`;
   const 보일묶음 = 규칙지도거르기(묶음들, 상태.지도갈래);
   return `<div class="칩줄"><span class="안내">규칙 ${셈.모두}</span>${['옮김', '제자리', '남음', '버림', '확인'].map(갈래단추).join('')}</div>`
-    + '<div class="지도줄 지도칸머리"><span>규칙</span><span>표시</span><span>언제 쓰나</span><span>어떻게 부르나</span><span>지금 자리</span>' + (PC ? '<span class="지도분량">분량</span>' : '') + '</div>'
+    + '<div class="지도줄 지도칸머리"><span>규칙</span><span>표시</span><span>언제 쓰나</span><span>어떻게 부르나</span><span>지금 자리</span></div>'
     + (보일묶음.map((g) => `<details class="자리큰" open><summary>${꾸미기(g.목적)} <span class="자리수">${g.규칙들.length}</span></summary>${g.규칙들.map(줄글).join('')}</details>`).join('')
       || `<p class="안내">${상태.지도갈래} 표시가 있는 규칙이 아직 없다</p>`);
 }

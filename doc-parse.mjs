@@ -258,8 +258,8 @@ export function 규칙글자리(자리) {
   if (/^(?:rules|agents)\/\S+$/.test(첫)) return { 저장소: 'claude-config', 경로: `${첫}.md` };
   return null;
 }
-// 분량 = 규칙 글의 글자 수, 글이 없으면 ─(bp-규칙지도) //
-export const 규칙분량 = (글) => (typeof 글 === 'string' ? `${[...글].length.toLocaleString('ko-KR')}자` : '─');
+// 분량 = 규칙 글의 글자 수를 괄호로 묶은 글, 글이 없으면 빈 글(bp-규칙지도) //
+export const 규칙분량 = (글) => (typeof 글 === 'string' ? `(${[...글].length.toLocaleString('ko-KR')}자)` : '');
 // 갈래로 거른 규칙 지도 — 갈래가 없으면 모든 줄, 보이는 줄이 없는 목적은 뺀다(bp-규칙지도) //
 const 지도갈래 = { 옮김: (x) => x.옮김 === '옮김', 제자리: (x) => x.옮김 === '제자리', 남음: (x) => !x.옮김, 버림: (x) => x.옮김 === '버림', 확인: (x) => !!x.확인 };
 export const 규칙지도거르기 = (묶음들, 갈래) => (지도갈래[갈래]
