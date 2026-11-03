@@ -251,7 +251,8 @@ details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: p
 .앞글 { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; padding: 2px 0; }
 .항 { padding: 6px 0; border-bottom: 1px dashed var(--선); overflow-wrap: anywhere; white-space: pre-wrap; }
 .항 .기호 { font-weight: 700; margin-right: 4px; }
-.항.흐림 { opacity: .5; }
+/* 그대로 둘 원래 글도 테두리 칸에 넣는다 — 칸 없이 흐린 글이 위 항의 「코멘트」 단추 밑에 붙으면 쓴 코멘트처럼 보였다 */
+.항.흐림 { opacity: .5; border: 1px solid var(--선); border-radius: 4px; padding: 4px 6px; }
 .될 { background: var(--초록); border-radius: 4px; padding: 4px 6px; }
 /* 생길 파일 미리보기 — 스킬·담당·훅 법안(bp-의회의 「상황판 의회 화면은 조문을 팝업 박스 하나로 열고, 갈 자리와 바뀔 내용을 함께 보여준다」). 머리 칸 표 · 마크다운 본문 · 코드 칸. */
 .미리보기 { font-size: 14px; padding: 8px 10px; overflow-wrap: anywhere; }
