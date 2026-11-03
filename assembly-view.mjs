@@ -188,7 +188,8 @@ export function 파일미리보기(글, 소속) {
 
 // 스킬·담당 본문의 마크다운을 그린다. 다루는 것: 제목(#~####) · 번호 목록 · 글머리 목록(들여쓰기 한 단) · //
 //   표 · 코드 울타리 · 인용 · 문단. 줄 안의 꾸밈은 꾸미기()(굵게·코드)다. 다루지 않는 문법은 글자 그대로 남는다. //
-export function 마크다운그리기(글) {
+// 줄살림이 참이면 문단 안의 줄을 이어 붙이지 않고 줄마다 끊는다 — 한 줄에 한 문장씩 쓴 조문(법안 · 설계안 몸)을 적힌 줄대로 보이려는 것이다. //
+export function 마크다운그리기(글, 줄살림) {
   var 줄 = String(글 || '').split('\n'), 밖 = [], i = 0, 울 = 의회백틱 + 의회백틱 + 의회백틱;
   var 표줄 = function (l) { return /^\s*\|.*\|\s*$/.test(l); };
   var 칸들 = function (l) { return l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); }); };
@@ -212,20 +213,22 @@ export function 마크다운그리기(글) {
     if (/^\s*(\d+\.|[-*])\s+/.test(l)) {
       var 항목 = [];
       while (i < 줄.length && /^\s*(\d+\.|[-*])\s+/.test(줄[i])) {
-        var mm = /^(\s*)(\d+\.|[-*])\s+(.*)$/.exec(줄[i]);
-        항목.push('<div class="마목' + (mm[1].length >= 2 ? ' 마목안' : '') + '"><span class="마표지">' + (/\d/.test(mm[2]) ? 막기(mm[2]) : '•') + '</span><span class="마글">' + 꾸미기(mm[3]) + '</span></div>');
+        var mm = /^(\s*)(\d+\.|[-*])\s+(.*)$/.exec(줄[i]), 글들 = [꾸미기(mm[3])];
         i++;
+        // 목록 줄 밑에 들여 쓴 줄(표지 없음)은 그 목록 줄의 풀이로 붙인다 //
+        while (i < 줄.length && /^\s{2,}\S/.test(줄[i]) && !/^\s*(\d+\.|[-*])\s+/.test(줄[i])) 글들.push(꾸미기(줄[i++].trim()));
+        항목.push('<div class="마목' + (mm[1].length >= 2 ? ' 마목안' : '') + '"><span class="마표지">' + (/\d/.test(mm[2]) ? 막기(mm[2]) : '•') + '</span><span class="마글">' + 글들.join('<br>') + '</span></div>');
       }
       밖.push(항목.join('')); continue;
     }
     if (t.indexOf('>') === 0) {
       var 인 = [];
       while (i < 줄.length && 줄[i].trim().indexOf('>') === 0) 인.push(줄[i++].trim().replace(/^>\s?/, ''));
-      밖.push('<div class="마인용">' + 마크다운그리기(인.join('\n')) + '</div>'); continue;
+      밖.push('<div class="마인용">' + 마크다운그리기(인.join('\n'), 줄살림) + '</div>'); continue;
     }
     var 문 = [];
     while (i < 줄.length && 줄[i].trim() && !표줄(줄[i]) && !/^\s*(\d+\.|[-*])\s+/.test(줄[i]) && !/^#{1,4}\s/.test(줄[i].trim()) && 줄[i].trim().indexOf(울) !== 0 && 줄[i].trim().indexOf('>') !== 0) 문.push(줄[i++].trim());
-    밖.push('<p class="마문">' + 꾸미기(문.join(' ')) + '</p>');
+    밖.push('<p class="마문">' + (줄살림 ? 문.map(꾸미기).join('<br>') : 꾸미기(문.join(' '))) + '</p>');
   }
   return 밖.join('');
 }

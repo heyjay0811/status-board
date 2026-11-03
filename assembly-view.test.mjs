@@ -53,6 +53,9 @@ console.log('\n[마크다운 그리기]');
   확인('인용', h.includes('<div class="마인용"><p class="마문">인용 글</p></div>'), h);
   확인('코드 칸(막아서 넣음)', h.includes('<pre class="코드칸"><code>a&lt;b</code></pre>'), h);
   확인('문단은 이어진 줄을 한 문단으로', h.includes('<p class="마문">그냥 문단 이어진 줄</p>'), h);
+  const 조 = 마크다운그리기(['① 칸이다.', '둘째 줄.', '', '- `식`', '  풀이 줄.'].join('\n'), true);
+  확인('줄살림 — 문단 안의 줄을 끊는다', 조.includes('<p class="마문">① 칸이다.<br>둘째 줄.</p>'), 조);
+  확인('목록 줄 밑에 들여 쓴 줄은 그 목록 줄의 풀이로 붙는다', 조.includes('<span class="마글"><code>식</code><br>풀이 줄.</span>') && !조.includes('<p class="마문">풀이 줄.'), 조);
 }
 
 console.log(`\n통과 ${통과} · 실패 ${실패}`);
