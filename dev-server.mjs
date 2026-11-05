@@ -66,7 +66,7 @@ for (const [이름, 폴더] of Object.entries(저장소들)) {
   }
   if (existsSync(join(폴더, '.claude'))) { mkdirSync(join(사본, '.claude'), { recursive: true }); writeFileSync(join(사본, '.claude', 'settings.json'), '{}'); }
 }
-// 규칙 지도가 읽는 글(bp-규칙지도) — 전역 설정과 회장실 저장소는 곳이 아니라 규칙 파일만 옮긴다 //
+// 규칙 지도가 읽는 글(bp-규칙지도) — 전역 설정과 회사 안내 저장소는 곳이 아니라 규칙 파일만 옮긴다 //
 const 사본두기 = (저장소, 경로, 원본) => { if (!existsSync(원본)) return; const 곳 = join(뿌리, 저장소, 경로); mkdirSync(dirname(곳), { recursive: true }); copyFileSync(원본, 곳); };
 const 전역 = join(homedir(), '.claude');
 사본두기('management', 'CLAUDE.md', join(관리부, 'CLAUDE.md'));
@@ -167,7 +167,7 @@ const 서버 = createServer((요청, 응답) => {
         return;
       }
       if (요청.method === 'PUT') {
-        // 쓰기만 막히는 열쇠 — 열쇠가 「wrong」으로 시작하면 쓰기(PUT)에만 401을 돌려준다(bp-결재의 「상황판은 찍은 답을 그 안이 있는 의회 파일이나 설계실 파일에 바로 한 번 적고, 못 적으면 멈춘다」 시험). //
+        // 쓰기만 막히는 열쇠 — 열쇠가 「wrong」으로 시작하면 쓰기(PUT)에만 401을 돌려준다(bp-답찍기의 「상황판은 찍은 답을 그 안이 있는 규칙안목록 파일이나 설계실 파일에 바로 한 번 적고, 못 적으면 멈춘다」 시험). //
         //   이 서버는 어떤 열쇠든 읽기를 받아 주고, 진짜 GitHub에서 열쇠를 틀리면 읽기부터 막혀 찍을 화면이 안 서기 때문이다. //
         // ★표지는 영문이다 — 브라우저와 Node의 fetch는 요청 머리(Authorization)에 한글이 들면 요청을 보내지 않고 던진다. //
         if (/^Bearer wrong/.test(요청.headers.authorization || '')) {

@@ -171,8 +171,8 @@ const 관리부문서 = join(here, '..', 'management', 'docs');
 // ── 6-2. 부서 묶음 — 관리부 설계 `bp-부서프로젝트목록` ── //
 console.log('\n[부서 묶음 — 부서인가()]');
 {
-  const 참 = ['management', 'yessoft', 'knowledge', '의회', '설계실'].filter((x) => 부서인가(x));
-  확인('관리부·전략기획실·자료실·의회·설계실은 부서다', 참.length === 5, 참.join(','));
+  const 참 = ['management', 'yessoft', 'knowledge', '규칙안목록', '설계실'].filter((x) => 부서인가(x));
+  확인('관리부·전략기획실·자료실·규칙안목록·설계실은 부서다', 참.length === 5, 참.join(','));
   const 거짓 = ['1talk-app', 's36524-app', 'homepage', 'ilgongil-app', '1talk-app-auto-order', ''].filter((x) => !부서인가(x));
   확인('일톡·모든예약 같은 그 밖의 곳은 프로젝트다', 거짓.length === 6, 거짓.join(','));
 }
@@ -369,9 +369,9 @@ else for (const [파일, 종류] of [['work.md', '작업'], ['verify.md', '검�
 
 // [관리부 작업 459] 올린 안 절 읽기 //
 {
-  const 글 = '# [작업 1] 제목\n\n### 결정할 사항\n\n- 정함\n\n### 올린 안\n\n- 의회 | 작업 파일 | 전역 경로 규칙 `rule-문서` 제11조 변경 | 승인 대기\n- 설계실 | 걸어 둔 작업 | 관리부 설계 `bp-작업` 제2조 ⑩ 변경 | 승인 2026-10-22(대화 승인)\n- 엉뚱한 줄\n\n### 구현 계획\n\n- 없음\n';
+  const 글 = '# [작업 1] 제목\n\n### 결정할 사항\n\n- 정함\n\n### 올린 안\n\n- 규칙안목록 | 작업 파일 | 전역 경로 규칙 `rule-문서` 제11조 변경 | 승인 대기\n- 설계실 | 걸어 둔 작업 | 관리부 설계 `bp-작업` 제2조 ⑩ 변경 | 승인 2026-10-22(대화 승인)\n- 엉뚱한 줄\n\n### 구현 계획\n\n- 없음\n';
   const 줄 = 올린안읽기(글);
-  확인('올린 안 — 의회 · 설계실 두 줄만 읽음', 줄.length === 2 && 줄[0].종류 === '의회' && 줄[1].종류 === '설계실', JSON.stringify(줄));
+  확인('올린 안 — 규칙안목록 · 설계실 두 줄만 읽음', 줄.length === 2 && 줄[0].종류 === '규칙안목록' && 줄[1].종류 === '설계실', JSON.stringify(줄));
   확인('올린 안 — 제목 · 갈 곳 · 끝 칸', 줄[0].제목 === '작업 파일' && 줄[0].갈곳.includes('rule-문서') && 줄[0].끝 === '승인 대기', JSON.stringify(줄[0]));
   확인('올린 안 — 절이 없으면 빈 목록', 올린안읽기('### 구현 계획\n- 없음').length === 0);
 }
@@ -390,7 +390,7 @@ console.log('\n[규칙 지도]');
   const 자리글 = (x) => { const r = 규칙글자리(x); return r ? `${r.저장소}:${r.경로}` : ''; };
   확인('규칙 지도 — rulebook 글 자리', 자리글('rulebook/응답규칙') === 'management:rulebook/응답규칙.md' && 자리글('rulebook/규칙기준 · 공통 제1 ~ 5 · 8조') === 'management:rulebook/규칙기준.md');
   확인('규칙 지도 — 제자리 글 자리', 자리글('~/.claude/CLAUDE.md') === 'claude-config:CLAUDE.md' && 자리글('D:/1code/CLAUDE.md') === 'yessoftbook:CLAUDE.md' && 자리글('관리부 제3 · 4조') === 'management:CLAUDE.md');
-  확인('규칙 지도 — 스킬 · 경로 규칙 · 담당 글 자리', 자리글('skills/law-citation') === 'claude-config:skills/law-citation/SKILL.md' && 자리글('rules/rule-훅') === 'claude-config:rules/rule-훅.md' && 자리글('agents/의회/dam-assembly') === 'claude-config:agents/의회/dam-assembly.md');
+  확인('규칙 지도 — 스킬 · 경로 규칙 · 담당 글 자리', 자리글('skills/law-citation') === 'claude-config:skills/law-citation/SKILL.md' && 자리글('rules/rule-훅') === 'claude-config:rules/rule-훅.md' && 자리글('agents/규칙안/dam-assembly') === 'claude-config:agents/규칙안/dam-assembly.md');
   확인('규칙 지도 — 옛 조 번호는 글 자리 없음', 자리글('매 턴 제1조') === '' && 자리글(undefined) === '');
   확인('규칙 지도 — 분량은 괄호 친 글자 수', 규칙분량('가a😀') === '(3자)' && 규칙분량('가'.repeat(1234)) === '(1,234자)' && 규칙분량('') === '(0자)');
   확인('규칙 지도 — 글이 없으면 분량 없음', 규칙분량(undefined) === '' && 규칙분량(null) === '');

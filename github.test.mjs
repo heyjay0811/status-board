@@ -45,11 +45,11 @@ function 가짜GitHub(저장소들, { 커밋들 = {} } = {}) {
   return { fetch, 기록, 몸들 };
 }
 
-const 의회 = '# 의회\n\n## 어떤 법안 | #규칙 | 소속: 전역 규칙\n\n① 항.\n\n---\n';
+const 규칙안목록 = '# 규칙안목록\n\n## 어떤 규칙안 | #규칙 | 소속: 전역 규칙\n\n① 항.\n\n---\n';
 console.log('[github 시험] START');
 
 { // 읽기 — 한글 경로와 글이 그대로, 없음은 null, 실패는 던짐 //
-  const 저장소들 = { management: { 'docs/assembly.md': { 글: 의회, sha: 's0' }, 'docs/설계실.md': { 글: '# 설계실 — 한글\n', sha: 's1' }, '.claude/settings.json': { 글: '{}', sha: 's2' } },
+  const 저장소들 = { management: { 'docs/assembly.md': { 글: 규칙안목록, sha: 's0' }, 'docs/설계실.md': { 글: '# 설계실 — 한글\n', sha: 's1' }, '.claude/settings.json': { 글: '{}', sha: 's2' } },
     배포만: { 'index.html': { 글: '<p>', sha: 's3' } } };
   const g = 가짜GitHub(저장소들); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
   const 읽음 = await 통로.파일읽기('management', 'docs/설계실.md');
@@ -63,17 +63,17 @@ console.log('[github 시험] START');
   확인('`.claude` 폴더가 있는 저장소만 부서·프로젝트로 센다', 확인결과.filter((x) => x.곳).map((x) => x.이름).join() === 'management' && 확인결과.find((x) => x.이름 === '배포만').곳 === false, JSON.stringify(확인결과));
   확인('마지막 커밋 시각을 돌려준다', (await 통로.마지막커밋('management', 'docs/assembly.md')) === '2026-09-29T11:22:33Z');
 }
-{ // [관리부 작업 464] 쓰기 — 답 파일 하나를 sha 없이 새로 만든다. 안 파일(의회 파일)은 읽지도 고치지도 않는다 //
+{ // [관리부 작업 464] 쓰기 — 답 파일 하나를 sha 없이 새로 만든다. 안 파일(규칙안목록 파일)은 읽지도 고치지도 않는다 //
   //   (bp-백엔드 — 결과 갈래는 deliver.test.mjs가 잰다) //
-  const 저장소들 = { management: { 'docs/assembly.md': { 글: 의회, sha: 's0' } } };
+  const 저장소들 = { management: { 'docs/assembly.md': { 글: 규칙안목록, sha: 's0' } } };
   const g = 가짜GitHub(저장소들); const 통로 = 통로만들기({ 열쇠: '가짜열쇠', fetch: g.fetch, 기록: 조용히 });
   const 이름 = 이름짓기(Date.UTC(2026, 9, 14, 3, 15, 22, 123), 'ab12cd34', 1);
-  const 글 = 글짓기(이름, { 문서: 'docs/assembly.md', 안: '어떤 법안', 무엇: '답', 답: '승인' });
-  const r = await 통로.답파일만들기('management', 이름, 글, '상황판: 어떤 법안에 승인', { 붙잡기: true });
+  const 글 = 글짓기(이름, { 문서: 'docs/assembly.md', 안: '어떤 규칙안', 무엇: '답', 답: '승인' });
+  const r = await 통로.답파일만들기('management', 이름, 글, '상황판: 어떤 규칙안에 승인', { 붙잡기: true });
   확인('답 파일 — 만듦을 알리고 그 저장소 docs/답/에 그 글이 생긴다', r.결과 === '만듦' && 저장소들.management['docs/답/' + 이름].글 === 글, JSON.stringify(r));
   확인('답 파일 — 요청은 PUT 하나뿐이고 한글 경로(docs/답/)를 감싸 보낸다', g.기록.join(' / ') === `PUT /repos/heyjay0811/management/contents/docs/답/${이름}`, g.기록.join(' / '));
   확인('답 파일 — 몸에 파일 지문(sha)을 싣지 않는다(새 파일만 만든다)', g.몸들.length === 1 && !('sha' in g.몸들[0]), JSON.stringify(g.몸들));
-  확인('답 파일 — 안 파일(의회 파일)은 그대로다', 저장소들.management['docs/assembly.md'].글 === 의회);
+  확인('답 파일 — 안 파일(규칙안목록 파일)은 그대로다', 저장소들.management['docs/assembly.md'].글 === 규칙안목록);
 }
 { // 저장소 파일 목록은 한꺼번에 받는다 — 한 곳씩 차례로 받으면 17곳에 5.7초, 한꺼번에 0.6초(2026-09-30 실제 GitHub) //
   const 저장소들 = {}; for (let i = 0; i < 5; i++) 저장소들['곳' + i] = { '.claude/x': { 글: '', sha: 'a' } };
