@@ -72,7 +72,6 @@ const 전역 = join(homedir(), '.claude');
 사본두기('management', 'CLAUDE.md', join(관리부, 'CLAUDE.md'));
 사본두기('yessoftbook', 'CLAUDE.md', join(dirname(관리부), 'CLAUDE.md'));
 사본두기('claude-config', 'CLAUDE.md', join(전역, 'CLAUDE.md'));
-for (const f of readdirSync(join(전역, 'rules'))) 사본두기('claude-config', `rules/${f}`, join(전역, 'rules', f));
 for (const d of readdirSync(join(전역, 'skills'))) 사본두기('claude-config', `skills/${d}/SKILL.md`, join(전역, 'skills', d, 'SKILL.md'));
 for (const f of readdirSync(join(전역, 'agents'), { recursive: true })) if (String(f).endsWith('.md')) 사본두기('claude-config', `agents/${String(f).replaceAll('\\', '/')}`, join(전역, 'agents', String(f)));
 console.log(`[시험 서버] 사본을 만들었다 — ${Object.keys(저장소들).length}곳 → ${뿌리}`);

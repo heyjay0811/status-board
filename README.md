@@ -12,7 +12,7 @@
 - `github.mjs` — GitHub 통로: 열쇠로 문서를 읽고, 찍은 답은 그 안이 있는 저장소 `docs/답/`에 새 답 파일 하나로 만든다(파일 지문 없는 요청 한 번, 모바일은 앱을 닫아도 끝까지 가는 keepalive). 기기에 남긴 답 파일 기록의 셈도 둔다
 - `github.test.mjs` — GitHub 통로의 시험(`node github.test.mjs`, 공개 저장소를 실제로 읽어 보려면 `--live`를 붙인다)
 - `deliver.test.mjs` — 답 파일을 원본에 전달하기의 시험(기기 기록 · 닿음과 끝내 못 닿음 가르기 · GitHub 통로와 PC 통로의 결과)
-- `bill-parse.mjs` — 규칙안목록 규칙안과 설계실 설계안을 읽는 부품(갈 곳 · 종류 · 답 · 코멘트 · 항 · 구현 계획)
+- `bill-parse.mjs` — 규칙안목록 규칙안과 설계실 설계안을 읽는 부품(갈 곳 · 종류 · 답 · 코멘트 · 항)
 - `index.html` · `app.css` · `app.mjs` — 상황판 화면(홈 · 규칙안목록 · 설계실 · 작업). 폰 폭이면 아래 탭과 화면 전체 박스, 900px 이상이면 목록과 박스 두 칸
 - `dev-server.mjs` — 시험 서버. 진짜 저장소의 `docs/` 문서를 임시 폴더로 복사해 GitHub API 모양으로 내준다(진짜 문서는 안 바뀐다). `node dev-server.mjs` 뒤 `http://127.0.0.1:8787/?api=/api`를 열고 열쇠 칸에 아무 글자나 넣는다
 

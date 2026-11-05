@@ -223,7 +223,7 @@ export function 규칙글자리(자리) {
   if (첫 === 'D:/1code/CLAUDE.md') return { 저장소: 'yessoftbook', 경로: 'CLAUDE.md' };
   if (/^관리부 제\d/.test(첫)) return { 저장소: 'management', 경로: 'CLAUDE.md' };
   if (/^skills\/[^/\s]+$/.test(첫)) return { 저장소: 'claude-config', 경로: `${첫}/SKILL.md` };
-  if (/^(?:rules|agents)\/\S+$/.test(첫)) return { 저장소: 'claude-config', 경로: `${첫}.md` };
+  if (/^agents\/\S+$/.test(첫)) return { 저장소: 'claude-config', 경로: `${첫}.md` };
   return null;
 }
 // 분량 = 규칙 글의 글자 수를 괄호로 묶은 글, 글이 없으면 빈 글(bp-규칙지도) //

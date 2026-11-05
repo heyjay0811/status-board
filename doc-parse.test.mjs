@@ -271,7 +271,7 @@ console.log('\n[규칙 지도]');
   const 자리글 = (x) => { const r = 규칙글자리(x); return r ? `${r.저장소}:${r.경로}` : ''; };
   확인('규칙 지도 — rulebook 글 자리', 자리글('rulebook/응답규칙') === 'management:rulebook/응답규칙.md' && 자리글('rulebook/규칙기준 · 공통 제1 ~ 5 · 8조') === 'management:rulebook/규칙기준.md');
   확인('규칙 지도 — 제자리 글 자리', 자리글('~/.claude/CLAUDE.md') === 'claude-config:CLAUDE.md' && 자리글('D:/1code/CLAUDE.md') === 'yessoftbook:CLAUDE.md' && 자리글('관리부 제3 · 4조') === 'management:CLAUDE.md');
-  확인('규칙 지도 — 스킬 · 경로 규칙 · 담당 글 자리', 자리글('skills/law-citation') === 'claude-config:skills/law-citation/SKILL.md' && 자리글('rules/rule-훅') === 'claude-config:rules/rule-훅.md' && 자리글('agents/규칙안/dam-assembly') === 'claude-config:agents/규칙안/dam-assembly.md');
+  확인('규칙 지도 — 스킬 · 담당 글 자리, 옛 경로 규칙 rules/는 글 자리 없음', 자리글('skills/law-citation') === 'claude-config:skills/law-citation/SKILL.md' && 자리글('rules/rule-훅') === '' && 자리글('agents/규칙안/dam-assembly') === 'claude-config:agents/규칙안/dam-assembly.md');
   확인('규칙 지도 — 옛 조 번호는 글 자리 없음', 자리글('매 턴 제1조') === '' && 자리글(undefined) === '');
   확인('규칙 지도 — 분량은 괄호 친 글자 수', 규칙분량('가a😀') === '(3자)' && 규칙분량('가'.repeat(1234)) === '(1,234자)' && 규칙분량('') === '(0자)');
   확인('규칙 지도 — 글이 없으면 분량 없음', 규칙분량(undefined) === '' && 규칙분량(null) === '');
