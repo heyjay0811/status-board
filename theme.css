@@ -6,6 +6,8 @@
   --바탕: #ffffff; --글: #1a1a1a; --흐린: #6b7280; --선: #e5e7eb; --칸: #fafafa; --머리: #f4f6f8; --강조: #2563eb;
   --새것: #2563eb; --바꿈: #16a34a; --더함: #8a6d1f; --지움: #dc2626;
   --글꼴: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  /* [관리부 작업계획 554] 상태 알약 색(bp-프론트엔드 제8조 ②) — 초록(읽은 지 1시간 안) · 회색(오래됨) · 파랑(읽는 중) · 빨강(문제). 어두운 모드는 아래 이름표를 따라간다 */
+  --알약초록: var(--바꿈); --알약회색: var(--흐린); --알약파랑: var(--강조); --알약빨강: var(--지움);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {

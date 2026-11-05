@@ -24,24 +24,41 @@ a { color: var(--강조); }
    좁은 화면에서 시각이 길면 다음 줄로 내린다 — 박스는 이 줄 아래부터 덮어 「전달 안 됨」 딱지가 늘 보인다(bp-답찍기). */
 .머리 { flex: none; position: relative; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 16px; background: var(--바탕); border-bottom: 1px solid var(--선); }
 .앱이름 { font-size: 18px; font-weight: 700; }
-.시각 { order: 3; flex-basis: 100%; font-size: 12px; color: var(--흐린); }
-/* [관리부 작업 473] bp-프론트엔드 — 앱 이름 옆 「판 MM-DD HH:mm」. 글은 아래 줄 시각과 같은 작은 흐린 글이고, 한 줄로 선다.
-   누르면(aria-expanded) · 마우스를 올리면(마우스가 있는 기기만 — 폰에서 누른 뒤 남는 hover로 접히지 않는 일을 막는다) 커밋 번호를 덧붙인다. */
-.판 { border: 0; background: none; padding: 0; font: inherit; font-size: 12px; color: var(--흐린); white-space: nowrap; cursor: pointer; }
-.판[hidden], .판커밋 { display: none; }
-.판[aria-expanded="true"] .판커밋 { display: inline; }
-@media (hover: hover) { .판:hover .판커밋 { display: inline; } }
-#다시읽기 { margin-left: auto; }
-/* [관리부 작업 464] bp-답찍기 — 「↻」 곁의 「전달 안 됨 N」 딱지와 그 아래로 펼치는 목록.
+/* [관리부 작업계획 554] bp-프론트엔드 제8조 — 앱 이름 옆 상태 알약. 색은 theme.css의 상태 색 이름표(알약초록 · 알약회색 · 알약파랑 · 알약빨강)만 쓴다.
+   파랑(받는 중)은 점 대신 도는 고리를 보인다 — 움직임을 줄여 달라고 설정한 기기에서는 돌리지 않는다. 자세한 칸은 머리 줄에 매달려 뷰어·박스 위에 뜬다. */
+.알약 { --알약색: var(--알약회색); display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--알약색);
+  color: var(--알약색); background: color-mix(in srgb, var(--알약색) 12%, var(--바탕)); font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
+  max-width: calc(100vw - 140px); overflow: hidden; text-overflow: ellipsis; }
+.알약::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--알약색); }
+.알약.초록 { --알약색: var(--알약초록); }
+.알약.파랑 { --알약색: var(--알약파랑); }
+.알약.빨강 { --알약색: var(--알약빨강); }
+.알약.파랑::before { width: 6px; height: 6px; background: none; border: 2px solid var(--알약색); border-top-color: transparent; animation: 알약돌기 1s linear infinite; }
+@keyframes 알약돌기 { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .알약.파랑::before { animation: none; } }
+.알약[aria-expanded="true"] { outline: 2px solid var(--알약색); outline-offset: 1px; }
+.알약칸 { position: absolute; top: 100%; left: 8px; z-index: 13; width: min(560px, calc(100vw - 16px)); max-height: 70vh; overflow: auto;
+  margin-top: 4px; padding: 10px 14px; background: var(--바탕); border: 1px solid var(--선); border-radius: 8px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--글) 20%, transparent); font-size: 13px; }
+.알약칸[hidden] { display: none; }
+.알약줄 { display: flex; gap: 10px; padding: 3px 0; }
+.알약줄 b { flex: none; width: 8.5em; color: var(--흐린); font-weight: 600; }
+.알약줄 span { overflow-wrap: anywhere; }
+.알약까닭 span { color: var(--알약빨강); }
+.알약칸 .지금다시 { margin: 8px 0 4px; }
+.알약접힘 { margin-top: 6px; border-top: 1px solid var(--선); padding-top: 6px; }
+.알약접힘 summary { cursor: pointer; font-weight: 600; }
+.알약접힘 pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; font-size: 11.5px; line-height: 1.5; }
+.알약접힘 .오류줄 { color: var(--알약빨강); }
+.알약접힘 .이력목록 { margin: 6px 0 0; padding-left: 18px; }
+.알약접힘 .이력목록 li { margin: 3px 0; }
+.알약접힘 .흐림 { color: var(--흐린); font-size: 12px; }
+/* [관리부 작업 464] bp-답찍기 — 머리 줄 오른쪽 끝의 「전달 안 됨 N」 딱지와 그 아래로 펼치는 목록.
    목록은 머리 줄에 매달려 뷰어·박스 위에 뜬다 — 목록 칸과 박스 칸에는 아무것도 끼워 넣지 않는다. 색은 theme.css 이름표(지움·바탕·선·흐린·글)만 쓴다. */
 .전달딱지 { margin-left: auto; border-color: var(--지움); color: var(--지움); background: color-mix(in srgb, var(--지움) 12%, var(--바탕)); font-weight: 700; }
 .전달딱지:hover { border-color: var(--지움); color: var(--지움); }
 .전달딱지[hidden] { display: none; }
-.전달딱지:not([hidden]) + #다시읽기 { margin-left: 0; }
 .전달딱지[aria-expanded="true"] { outline: 2px solid var(--지움); outline-offset: 1px; }
-/* [관리부 작업 472] bp-프론트엔드 — 「새 판 못 받음」 딱지는 「전달 안 됨」 딱지 모양을
-   같이 쓰고 그보다 왼쪽에 선다. 둘 다 서면 앞의 딱지만 오른쪽으로 민다. 까닭 줄은 전달 목록 모양을 같이 쓴다. */
-.새판딱지:not([hidden]) ~ .전달딱지, .새판딱지:not([hidden]) ~ #다시읽기 { margin-left: 0; }
 .전달목록 { position: absolute; top: 100%; right: 8px; z-index: 13; width: min(440px, calc(100vw - 16px)); max-height: 60vh; overflow: auto;
   margin: 4px 0 0; padding: 6px 0; list-style: none; background: var(--바탕); border: 1px solid var(--선); border-radius: 8px;
   box-shadow: 0 6px 18px color-mix(in srgb, var(--글) 20%, transparent); font-size: 13px; }
@@ -280,9 +297,6 @@ mark { background: var(--노랑); color: inherit; }
    답 단추 칸(.박스발)은 박스 칸 아래에 붙은 채로 둔다. 목록 칸의 격자 칸(.박스칸)은 목록 높이만큼 늘어나 붙을 자리를 내준다.
    ★전에는 창 전체가 굴러 붙는 기준이 창 맨 위였고, 목록 맨 아래의 안을 열면 박스 칸이 화면 밖으로 밀렸다. */
 @media (min-width: 900px) {
-  .시각 { order: 0; flex-basis: auto; margin-left: auto; }
-  #다시읽기 { margin-left: 0; }
-  .전달딱지 { margin-left: 0; }
   #본문 { max-width: none; padding: 14px 24px; }
   .위칸 { padding: 8px 24px 0; }
   .뷰어칸 { padding: 12px 24px 0; }

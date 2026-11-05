@@ -169,6 +169,19 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     return r.값[0].sha;
   }
 
+  // [관리부 작업계획 554] bp-백엔드 제3조 ④ — 고친 이력: status-board 커밋과, 관리부 tools/를 바꾼 커밋 가운데 메시지에 「상황판」이 든 것을 //
+  //   늦은 차례로 30개까지 [{ 시각, 커밋(앞 7글자), 글(메시지 첫 줄), 저장소 }]로 돌려준다. 사용자가 그 칸을 펼칠 때만 부른다. //
+  async function 고친이력() {
+    기록.log('[GitHub 통로] START 고친이력');
+    const 읽기 = async (저장소, 덧) => {
+      const r = await 요청('GET', `/repos/${주인}/${저장소}/commits?${덧}`);
+      if (r.상태 !== 200 || !Array.isArray(r.값)) throw 실패(`커밋 목록을 못 읽었다: ${저장소}`, r);
+      return r.값.map((c) => ({ 시각: c.commit.committer.date, 커밋: String(c.sha).slice(0, 7), 글: String(c.commit.message).split('\n')[0], 저장소 }));
+    };
+    const [화면, 관리부] = await Promise.all([읽기('status-board', 'per_page=30'), 읽기('management', 'per_page=100&path=tools')]);
+    return [...화면, ...관리부.filter((x) => x.글.includes('상황판'))].sort((a, b) => Date.parse(b.시각) - Date.parse(a.시각)).slice(0, 30);
+  }
+
   // [관리부 작업 457] bp-백엔드 — 모바일 앱이 열 때마다 부른다. //
   //   저장소 목록을 한 번 묻고, 곳마다 마지막 커밋을 물어 //
   //   목록다시받기(곳) = (기기에 저장한 그 곳의 파일 목록 없음) OR (지금 마지막 커밋 ≠ 그 곳 파일 목록을 받을 때 저장한 마지막 커밋)이 //
@@ -274,7 +287,7 @@ export function 통로만들기({ 열쇠 = '', 주인 = 'heyjay0811', API = 진�
     return { 판: 끝난것.head_sha, 시각 };
   }
 
-  return { 파일읽기, 파일목록, 저장소목록, 저장소커밋, 곳목록확인, 마지막커밋, 답파일만들기, Pages판 };
+  return { 파일읽기, 파일목록, 저장소목록, 저장소커밋, 곳목록확인, 마지막커밋, 답파일만들기, Pages판, 고친이력 };
 }
 
 // ── 판 맞추기 식 ─────────────────────────────────────────────────────── //
