@@ -39,7 +39,7 @@ function 진짜저장소들() {
   return 표;
 }
 
-// 사본 만들기 — docs/ 바로 아래 .md, 작업 파일(docs/작업/*.md — bp-작업의 「상황판은 작업 제목을 누르면 그 작업의 작업 파일을 펼치고, 진행 현황은 글 그대로 보이되 옛 지시 줄은 눌러 그 보고를 펼친다」), `.claude` 폴더가 있다는 표시만 옮긴다. //
+// 사본 만들기 — docs/ 바로 아래 .md, 작업 파일(docs/작업/*.md — bp-작업의 「상황판은 작업계획 제목을 누르면 그 작업계획의 작업 파일을 펼치고, 진행 현황은 글 그대로 보이되 옛 지시 줄은 눌러 그 보고를 펼친다」), `.claude` 폴더가 있다는 표시만 옮긴다. //
 const 뿌리 = mkdtempSync(join(tmpdir(), 'sb-dev-'));
 const 저장소들 = 진짜저장소들();
 for (const [이름, 폴더] of Object.entries(저장소들)) {
@@ -47,10 +47,10 @@ for (const [이름, 폴더] of Object.entries(저장소들)) {
   mkdirSync(join(사본, 'docs'), { recursive: true });
   const docs = join(폴더, 'docs');
   if (existsSync(docs)) for (const f of readdirSync(docs)) if (f.endsWith('.md')) copyFileSync(join(docs, f), join(사본, 'docs', f));
-  const 작업 = join(docs, '작업');
-  if (existsSync(작업)) {
+  const 작업폴더 = join(docs, '작업');
+  if (existsSync(작업폴더)) {
     mkdirSync(join(사본, 'docs', '작업'), { recursive: true });
-    for (const f of readdirSync(작업)) if (f.endsWith('.md')) copyFileSync(join(작업, f), join(사본, 'docs', '작업', f));
+    for (const f of readdirSync(작업폴더)) if (f.endsWith('.md')) copyFileSync(join(작업폴더, f), join(사본, 'docs', '작업', f));
   }
   // [관리부 작업 464] 답 파일 자리(docs/답/*.json) — 진짜 저장소에 있으면 함께 옮긴다 //
   const 답 = join(docs, '답');
@@ -83,7 +83,7 @@ const 종류표 = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascrip
 // 문서 읽기를 일부러 늦춘다(밀리초) — 화면이 기기에 둔 글로 먼저 그리는지 잰다(bp-백엔드의 「상황판은 원본에서 그때그때 읽은 문서로 화면을 그린다」) //
 const 읽기지연 = Number(process.env.SB_READ_DELAY_MS || 0);
 // 일부러 못 읽게 할 파일 — 경로에 이 조각(쉼표로 여럿)이 든 파일은 파일 목록에는 두고 읽기(GET)만 500을 돌려준다. //
-//   파일 목록에 있는데 못 읽을 때 화면이 무엇을 못 읽었는지 알리는지 잰다(bp-작업의 「상황판은 작업 제목을 누르면 그 작업의 작업 파일을 펼치고, 진행 현황은 글 그대로 보이되 옛 지시 줄은 눌러 그 보고를 펼친다」 · bp-백엔드). //
+//   파일 목록에 있는데 못 읽을 때 화면이 무엇을 못 읽었는지 알리는지 잰다(bp-작업의 「상황판은 작업계획 제목을 누르면 그 작업계획의 작업 파일을 펼치고, 진행 현황은 글 그대로 보이되 옛 지시 줄은 눌러 그 보고를 펼친다」 · bp-백엔드). //
 const 못읽을것 = String(process.env.SB_READ_FAIL || '').split(',').map((s) => s.trim()).filter(Boolean);
 // 열쇠가 못 보는 저장소 흉내 — 이 이름(쉼표로 여럿)의 저장소는 저장소 목록에서 빠지고 파일 목록·파일 읽기가 404다(bp-부서프로젝트목록 · bp-백엔드). //
 const 숨길저장소 = String(process.env.SB_HIDE || '').split(',').map((s) => s.trim()).filter(Boolean);
