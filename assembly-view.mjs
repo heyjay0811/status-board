@@ -191,8 +191,10 @@ export function 파일미리보기(글, 소속) {
 // 줄살림이 참이면 문단 안의 줄을 이어 붙이지 않고 줄마다 끊는다 — 한 줄에 한 문장씩 쓴 조문(규칙안 · 설계안 몸)을 적힌 줄대로 보이려는 것이다. //
 export function 마크다운그리기(글, 줄살림) {
   var 줄 = String(글 || '').split('\n'), 밖 = [], i = 0, 울 = 규칙안목록백틱 + 규칙안목록백틱 + 규칙안목록백틱;
-  var 표줄 = function (l) { return /^\s*\|.*\|\s*$/.test(l); };
-  var 칸들 = function (l) { return l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); }); };
+  // [관리부 작업계획 555] 표 줄 머리의 「(변경)」·「(제거)」·「(신설)」 표시도 표 줄로 읽고, 그 줄만 칠한다 — 아래 표 그리기 //
+  var 표줄 = function (l) { return /^\s*(?:\((?:신설|변경|제거)\)\s*)?\|.*\|\s*$/.test(l); };
+  var 표표시 = function (l) { var m = /^\s*\((신설|변경|제거)\)/.exec(l); return m ? m[1] : ''; };
+  var 칸들 = function (l) { return l.trim().replace(/^\((?:신설|변경|제거)\)\s*/, '').replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); }); };
   while (i < 줄.length) {
     var l = 줄[i], t = l.trim(), m;
     if (!t) { i++; continue; }
@@ -206,8 +208,25 @@ export function 마크다운그리기(글, 줄살림) {
       var 행 = [];
       while (i < 줄.length && 표줄(줄[i])) 행.push(줄[i++]);
       var 머 = 칸들(행[0]), 몸 = 행.slice(1).filter(function (r) { return !/^\s*\|[\s|:-]+\|\s*$/.test(r); });
+      // 「(변경)」 줄은 바로 앞 표 줄 하나만 바꾼다 — 앞 줄은 빨강(없어지는 대목 짚음), 「(변경)」 줄은 초록(생기는 대목 짚음), 같은 칸은 칠하지 않는다. //
+      //   「(제거)」 줄은 빨강, 「(신설)」 줄은 초록이고 나머지 표 줄은 그대로다. //
+      var 줄들 = 몸.map(function (r) { return { 표시: 표표시(r), 칸: 칸들(r), 칠: '', 짝칸: null }; });
+      줄들.forEach(function (r, j) {
+        if (r.표시 === '제거') r.칠 = '지울';
+        else if (r.표시 === '신설') r.칠 = '될';
+        else if (r.표시 === '변경') {
+          r.칠 = '될';
+          var 앞 = 줄들[j - 1];
+          if (앞 && !앞.표시 && !앞.짝칸) { 앞.칠 = '지울'; 앞.짝칸 = r.칸; r.짝칸 = 앞.칸; }
+        }
+      });
+      var 칸그리기 = function (r, c, n) {
+        var 짝 = r.짝칸 ? (r.짝칸[n] || '') : null;
+        if (짝 === null || 짝 === c) return 꾸미기(c);
+        return r.칠 === '지울' ? 지운데(c, 짝) : 달라진데(짝, c);
+      };
       밖.push('<table class="마표"><tr>' + 머.map(function (c) { return '<th>' + 꾸미기(c) + '</th>'; }).join('') + '</tr>' +
-        몸.map(function (r) { return '<tr>' + 칸들(r).map(function (c) { return '<td>' + 꾸미기(c) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>');
+        줄들.map(function (r) { return '<tr' + (r.칠 ? ' class="' + r.칠 + '"' : '') + '>' + r.칸.map(function (c, n) { return '<td>' + 칸그리기(r, c, n) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>');
       continue;
     }
     if (/^\s*(\d+\.|[-*])\s+/.test(l)) {
