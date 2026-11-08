@@ -25,7 +25,7 @@ a { color: var(--강조); }
 .머리 { flex: none; position: relative; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 16px; background: var(--바탕); border-bottom: 1px solid var(--선); }
 .앱이름 { font-size: 18px; font-weight: 700; }
 /* [관리부 작업계획 554] bp-프론트엔드 제8조 — 앱 이름 옆 상태 알약. 색은 theme.css의 상태 색 이름표(알약초록 · 알약회색 · 알약파랑 · 알약빨강)만 쓴다.
-   파랑(받는 중)은 점 대신 도는 고리를 보인다 — 움직임을 줄여 달라고 설정한 기기에서는 돌리지 않는다. 자세한 칸은 머리 줄에 매달려 뷰어·박스 위에 뜬다. */
+   파랑(받는 중)은 점 대신 도는 고리를 보인다 — 움직임을 줄여 달라고 설정한 기기에서는 돌리지 않는다. */
 .알약 { --알약색: var(--알약회색); display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--알약색);
   color: var(--알약색); background: color-mix(in srgb, var(--알약색) 12%, var(--바탕)); font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer;
   max-width: calc(100vw - 140px); overflow: hidden; text-overflow: ellipsis; }
@@ -36,22 +36,6 @@ a { color: var(--강조); }
 .알약.파랑::before { width: 6px; height: 6px; background: none; border: 2px solid var(--알약색); border-top-color: transparent; animation: 알약돌기 1s linear infinite; }
 @keyframes 알약돌기 { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .알약.파랑::before { animation: none; } }
-.알약[aria-expanded="true"] { outline: 2px solid var(--알약색); outline-offset: 1px; }
-.알약칸 { position: absolute; top: 100%; left: 8px; z-index: 13; width: min(560px, calc(100vw - 16px)); max-height: 70vh; overflow: auto;
-  margin-top: 4px; padding: 10px 14px; background: var(--바탕); border: 1px solid var(--선); border-radius: 8px;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--글) 20%, transparent); font-size: 13px; }
-.알약칸[hidden] { display: none; }
-.알약줄 { display: flex; gap: 10px; padding: 3px 0; }
-.알약줄 b { flex: none; width: 8.5em; color: var(--흐린); font-weight: 600; }
-.알약줄 span { overflow-wrap: anywhere; }
-.알약까닭 span { color: var(--알약빨강); }
-.알약접힘 { margin-top: 6px; border-top: 1px solid var(--선); padding-top: 6px; }
-.알약접힘 summary { cursor: pointer; font-weight: 600; }
-.알약접힘 pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; font-size: 11.5px; line-height: 1.5; }
-.알약접힘 .오류줄 { color: var(--알약빨강); }
-.알약접힘 .이력목록 { margin: 6px 0 0; padding-left: 18px; }
-.알약접힘 .이력목록 li { margin: 3px 0; }
-.알약접힘 .흐림 { color: var(--흐린); font-size: 12px; }
 /* [관리부 작업 464] bp-답찍기 — 머리 줄 오른쪽 끝의 「전달 안 됨 N」 딱지와 그 아래로 펼치는 목록.
    목록은 머리 줄에 매달려 뷰어·박스 위에 뜬다 — 목록 칸과 박스 칸에는 아무것도 끼워 넣지 않는다. 색은 theme.css 이름표(지움·바탕·선·흐린·글)만 쓴다. */
 .전달딱지 { margin-left: auto; border-color: var(--지움); color: var(--지움); background: color-mix(in srgb, var(--지움) 12%, var(--바탕)); font-weight: 700; }
