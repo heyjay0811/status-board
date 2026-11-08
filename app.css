@@ -45,7 +45,6 @@ a { color: var(--강조); }
 .알약줄 b { flex: none; width: 8.5em; color: var(--흐린); font-weight: 600; }
 .알약줄 span { overflow-wrap: anywhere; }
 .알약까닭 span { color: var(--알약빨강); }
-.알약칸 .지금다시 { margin: 8px 0 4px; }
 .알약접힘 { margin-top: 6px; border-top: 1px solid var(--선); padding-top: 6px; }
 .알약접힘 summary { cursor: pointer; font-weight: 600; }
 .알약접힘 pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; font-size: 11.5px; line-height: 1.5; }
@@ -157,6 +156,11 @@ details.설계조 > summary { font-size: 13.5px; font-weight: 600; }
 details.자리큰 > summary { font-weight: 700; padding: 8px 0; cursor: pointer; }
 details.자리작은 { margin-left: 10px; }
 details.자리작은 > summary { color: var(--흐린); padding: 4px 0; cursor: pointer; }
+/* [관리부 작업계획 561] bp-규칙안목록 제3조 ⑩ — 승인 묶음 하나를 왼쪽 굵은 세로선 상자로 감싸고 묶음 사이에 빈 칸을 둔다. 세로선이 끊기는 곳이 묶음이 끝나는 곳이다.
+   묶음 안 작은 머리 줄(갈 문서)은 더 들여 쓰고 작은 글씨로 써서 묶음 머리 줄과 다른 모양으로 보인다 */
+details.묶음상자 { border-left: 4px solid var(--강조); padding-left: 12px; margin: 0 0 20px; }
+details.묶음상자 details.자리작은 { margin-left: 14px; }
+details.묶음상자 details.자리작은 > summary { font-size: 12px; }
 .자리수 { font-size: 12px; color: var(--흐린); font-weight: 400; }
 .지도줄 { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--선); font-size: 14px; }
 .지도이름 { font-weight: 600; overflow-wrap: anywhere; }

@@ -21,8 +21,9 @@
 <!-- 문서는 GitHub에서 열쇠로 읽고, 찍은 답은 그 안이 있는 저장소 docs/답/에 답 파일 하나로 새로 만든다. -->
 <header class="머리">
   <strong class="앱이름">상황판</strong>
-  <!-- [관리부 작업계획 554] bp-프론트엔드 제8조 — 앱 이름 옆 상태 알약 하나. 색으로 화면이 원본과 언제 맞았는지 보이고, 누르면 아래에 자세한 칸을 펼친다(app.mjs 알약그리기()) -->
-  <button type="button" class="알약" id="알약" aria-expanded="false" aria-controls="알약칸"></button>
+  <!-- [관리부 작업계획 554] bp-프론트엔드 제8조 — 앱 이름 옆 상태 알약 하나. 색으로 화면이 원본과 언제 맞았는지 보이고, 누르면 원본을 다시 읽는다. 옆 「자세히」는 아래에 자세한 칸을 펼친다(app.mjs 알약그리기()) -->
+  <button type="button" class="알약" id="알약"></button>
+  <button type="button" class="작은단추 알약자세히" id="알약자세히" aria-expanded="false" aria-controls="알약칸">자세히</button>
   <!-- [관리부 작업 464] bp-답찍기 — 아직 원본에 닿지 않은 답이 있으면 오른쪽 끝에 서고, 누르면 아래에 목록을 펼친다(app.mjs 딱지그리기()) -->
   <button type="button" class="작은단추 전달딱지" id="전달딱지" hidden aria-expanded="false" aria-controls="전달목록" title="누르면 아직 원본에 닿지 않은 답을 보인다 — 상황판이 알아서 보낸다"></button>
   <!-- [관리부 작업 475] bp-부서프로젝트목록 — 모바일 앱에서 곳 하나를 펼친 동안만 서는 줄: 「◀ 접기」와 그 곳 이름. 첫 줄 아래 한 줄을 통째로 쓴다(app.mjs 곳머리그리기()). PC 앱 머리 줄에는 이 칸이 없다 -->
