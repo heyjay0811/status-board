@@ -25,9 +25,12 @@
   <button type="button" class="알약" id="알약"></button>
   <!-- [관리부 작업 464] bp-답찍기 — 아직 원본에 닿지 않은 답이 있으면 오른쪽 끝에 서고, 누르면 아래에 목록을 펼친다(app.mjs 딱지그리기()) -->
   <button type="button" class="작은단추 전달딱지" id="전달딱지" hidden aria-expanded="false" aria-controls="전달목록" title="누르면 아직 원본에 닿지 않은 답을 보인다 — 상황판이 알아서 보낸다"></button>
+  <!-- [관리부 작업계획 579] bp-원격켜기 제1조 — 모바일 앱 머리 줄 오른쪽 끝의 원격 켜기 버튼. 누르면 아래로 결과 목록을 펼치고, 목록 안 단추로 요청을 보낸다(app.mjs 원격그리기()) -->
+  <button type="button" class="작은단추 원격단추" id="원격단추" hidden aria-expanded="false" aria-controls="원격목록" title="누르면 마지막 원격 켜기 결과와 요청 단추를 보인다"></button>
   <!-- [관리부 작업 475] bp-부서프로젝트목록 — 모바일 앱에서 곳 하나를 펼친 동안만 서는 줄: 「◀ 접기」와 그 곳 이름. 첫 줄 아래 한 줄을 통째로 쓴다(app.mjs 곳머리그리기()). PC 앱 머리 줄에는 이 칸이 없다 -->
   <div class="곳머리" id="곳머리" hidden><button type="button" class="작은단추" id="곳접기" title="이 곳을 접고 부서·프로젝트 단추 화면으로 돌아간다">◀ 접기</button><strong class="곳머리이름" id="곳머리이름"></strong></div>
   <ul class="전달목록" id="전달목록" hidden></ul>
+  <ul class="전달목록 원격목록" id="원격목록" hidden></ul>
 </header>
 <main id="본문"><p class="안내">읽는 중…</p></main>
 <div class="박스덮개" id="박스덮개" hidden><section class="박스" id="박스" aria-live="polite"></section></div>
