@@ -49,13 +49,6 @@ a { color: var(--강조); }
 .전달목록 li { padding: 6px 12px; overflow-wrap: anywhere; }
 .전달목록 li + li { border-top: 1px solid var(--선); }
 .전달목록 .전달곳 { color: var(--흐린); font-size: 12px; }
-/* [관리부 작업계획 579] bp-원격켜기 제1조 — 원격 켜기 버튼은 머리 줄 오른쪽 끝(「전달 안 됨」 딱지가 서 있으면 그 곁)에 선다. 목록은 「전달 안 됨」 목록과 같은 모양 */
-.원격단추 { margin-left: auto; }
-.원격단추[hidden] { display: none; }
-.전달딱지:not([hidden]) ~ .원격단추 { margin-left: 0; }
-.원격단추[aria-expanded="true"] { outline: 2px solid var(--강조); outline-offset: 1px; }
-.원격목록 .흐림 { color: var(--흐린); font-size: 12px; }
-.원격목록 [aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .전달목록 .전달무엇 { font-weight: 600; }
 .전달목록 .못닿음 { display: block; margin-top: 2px; color: var(--지움); }
 .작은단추 { border: 1px solid var(--선); background: var(--칸); color: var(--글); border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
